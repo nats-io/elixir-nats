@@ -1,0 +1,6 @@
+language: elixir
+otp_release:
+  - 18.0
+sudo: false
+services:
+  - nats-server
