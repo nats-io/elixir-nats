@@ -2,6 +2,8 @@
 /deps
 erl_crash.dump
 *.ez
+*.exs~
+*.ex~
 # Benchstuff
 /bench/graphs
 /bench/snapshots
