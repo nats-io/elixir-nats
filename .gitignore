@@ -2,3 +2,12 @@
 /deps
 erl_crash.dump
 *.ez
+# Benchstuff
+/bench/graphs
+/bench/snapshots
+# generated docs/binaries
+/doc
+/ebin
+# OSX
+.DS_Store
+Icon?
