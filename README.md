@@ -1,8 +1,7 @@
 
 # Elixir NATS Framework
 
-[![Build
-Status](https://travis-ci.org/nats.io/elixir-nats.svg?branch=master)](https://travis-ci.org/nats-io/elixir-nats)
+[![Build Status](https://travis-ci.org/nats.io/elixir-nats.svg?branch=master)](https://travis-ci.org/nats-io/elixir-nats)
 [![Coverage Status](https://coveralls.io/repos/nats-io/elixir-nats/badge.svg?branch=master&service=github)](https://coveralls.io/github/nats-io/elixir-nats?branch=master)
 
 The full documentation for exlixir-nats is located [here](#doc-link)
