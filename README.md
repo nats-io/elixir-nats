@@ -26,7 +26,7 @@ The full documentation for exlixir-nats is located [here](#doc-link)
 
 5. Documentation
 
-6. Travis cleanup
+~~6. Travis cleanup~~
 
 7. Coveralls integration/cleanup
 
