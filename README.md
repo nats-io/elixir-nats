@@ -8,7 +8,7 @@ The full documentation for exlixir-nats is located [here](#doc-link)
 
 1. Get and install Elixir for your platform
 
-2. Type: "mix deps.get; mix test; mix coveralls; mix build #etc"
+2. Type: "mix deps.get; mix test; mix coveralls; mix compile; mix bench #etc"
 
 3. Have fun...
 
@@ -22,12 +22,14 @@ The full documentation for exlixir-nats is located [here](#doc-link)
 
 3. Talk about pooling/fault tolerance approaches with team
 
-4. Wrap nats agent based upon #3 or provide out of the box config/esamples
+4. Wrap nats agent based upon #3 or provide out of the box configs/samples
 
 5. Documentation
 
-6. Travis/coveralls integration/cleanups
+~~6. Travis cleanup~~
 
-7. Performance/profiling (none done). This code was put together quickly to get it running.
+7. Coveralls integration/cleanup
+
+8. Performance/profiling (none done). This code was put together quickly to get it running.
 
 ## [License](./LICENSE)
