@@ -1,45 +1,71 @@
 defmodule Nats.Connection do
   use GenServer
 
-  @start_state %{sock_state: :handshake, sock: nil}
-
+	@default_port 4222
+	@conn_timeout 5000
+  @start_state %{sock_state: :handshake, sock: nil,
+								 port: @default_port,
+								 timeout: @conn_timeout,
+								 opts: [:binary, active: true]}
   def start_link do
-    GenServer.start_link(__MODULE__, @start_state)
+		start_link @default_port
   end
 
+	def start_link(port) do
+    GenServer.start_link(__MODULE__, %{@start_state | port: port})
+	end
   def init(state) do
-		port = 4222
-		IO.puts "connecting to...#{port}"
-    opts = [:binary, active: true]
+		IO.puts "connecting to NATS...#{inspect(state)}"
+    opts = state[:opts]
 
-    {:ok, connected} = :gen_tcp.connect('localhost', port, opts)
+    {:ok, connected} = :gen_tcp.connect('localhost',
+																				state[:port],
+																				opts,
+																				state[:timeout])
+		ns = %{state | sock: connected}
 #		{:error, reason} ->
 #   {:backoff, B1, state} # inc state.incre
-		IO.puts "connected!"
-		IO.puts "sending INFO..."
-		info_json = %{
-			"version" => "elixir-alpha",
-			"tls_required" => false
-			}
-		_val = handle_call({:command, {:info, info_json}}, self(), state)
-    {:ok, %{state | sock: connected}}
+#		connect_json = %{
+#			"version" => "elixir-alpha",
+#			"tls_required" => false
+#		}
+#		{:noreply, ns } = handle_call({:command, {:connect, connect_json}},
+#																	self(),
+#																	)
+		:ok = :inet.setopts(connected, opts)
+		IO.puts "connected to nats: #{inspect(ns)}"
+		{:ok, ns}
   end
 
 	def handle_call({:command, cmd}, _from, %{sock_state: _con_state,
 																						sock: socket} = state) do
-		pack = Nats.Parser.to_list(cmd)
+		pack = Nats.Parser.encode(cmd)
     :ok = :gen_tcp.send(socket, pack)
+		IO.puts("sent #{inspect(pack)}...")
 		{:noreply, state}
   end
-
-	def handle_call({:tcp, socket, cmd}, _from, %{sock_state: _con_state,
-																								sock: socket} = state) do
-		val = Nats.Parser.parse(cmd)
+	def handle_info({:tcp_closed, sock}, state) do
+		IO.puts ("tcp_closed: #{inspect(sock)}")
+		{ :noreply, state }
+	end
+	def handle_info({:tcp_error, sock, reason}, state) do
+		IO.puts ("tcp_closed: #{inspect(sock)}: #{reason}")
+		{ :noreply, state }
+	end
+	def handle_info({:tcp_passive, sock}, state) do
+		IO.puts ("tcp_passive: #{inspect(sock)}")
+		{ :noreply, state }
+	end
+	def handle_info({:tcp, _sock, data}, state) do
+		  #%{sock_state: _con_state, sock: _ignore} = state) do
+		IO.puts ("tcp: #{inspect(data)}")
+		val = Nats.Parser.parse(data)
 		case val do
-			{:ok, what} -> IO.puts inspect(what)
-			other -> IO.puts "oops -> #{inspect(other)}"
+			{:ok, what} -> IO.puts inspect("received NATS message: #{inspect(what)}")
+			other -> IO.puts "received something strange: oops -> #{inspect(other)}"
 		end
 		{:noreply, state}
   end
+
 	
 end

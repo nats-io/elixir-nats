@@ -7,25 +7,25 @@ defmodule Nats.ParserTest do
 		verb = Nats.Parser.parse("PING\r\n")
 		assert verb == {:ok, {:ping}}
 		
-		out = Nats.Parser.to_list(verb)
+		out = Nats.Parser.encode(verb)
 		assert out == "PING\r\n"
 		
 		verb = Nats.Parser.parse("PONG\r\n")
 		assert verb == {:ok, {:pong}}
 
-		out = Nats.Parser.to_list(verb)
+		out = Nats.Parser.encode(verb)
 		assert out == "PONG\r\n"
 		
 		verb = Nats.Parser.parse("+OK\r\n")
 		assert verb == {:ok, {:ok}}
 
-		out = Nats.Parser.to_list(verb)
+		out = Nats.Parser.encode(verb)
 		assert out == "+OK\r\n"
 		
     verb = Nats.Parser.parse("-ERR abc\r\n")
     assert verb == {:ok, {:err, "abc"}}
 
-		out = Nats.Parser.to_list(verb)
+		out = Nats.Parser.encode(verb)
 		assert out == "-ERR abc\r\n"
 		
 		# missing arg...
@@ -65,15 +65,15 @@ defmodule Nats.ParserTest do
 		assert v == :ok
 
     v = Nats.Parser.parse("INFO {}\r\n")
-		out = Nats.Parser.to_list(v)
+		out = Nats.Parser.encode(v)
 		assert out == "INFO {}\r\n"
 
     v = Nats.Parser.parse("INFO { \"key\":true}\r\n")
-		out = Nats.Parser.to_list(v)
+		out = Nats.Parser.encode(v)
 		assert out == "INFO {\"key\": true}\r\n"
 
     v = Nats.Parser.parse("INFO { \"k1\":true, \"k2\": false}\r\n")
-		out = Nats.Parser.to_list(v)
+		out = Nats.Parser.encode(v)
 		assert out == "INFO {\"k1\": true, \"k2\": false}\r\n"
 		
     { v, _rest } = Nats.Parser.parse("CONNECT {\"key\":true}\r\n")
@@ -88,7 +88,7 @@ defmodule Nats.ParserTest do
 		assert json["a"]["b"]["c"] == "zebra"
 
 		v = Nats.Parser.parse("INFO {\"a\":{\"b\":{\"c\":\"zebra\"}}}\r\n")
-		_out = Nats.Parser.to_list(v)
+		_out = Nats.Parser.encode(v)
 	end
 	
 	test "UNSUB parsing" do
@@ -108,14 +108,14 @@ defmodule Nats.ParserTest do
 		v = Nats.Parser.parse("SUB subj sid\r\n")
 		assert v == {:ok, {:sub, "subj", nil, "sid"}}
 
-		out = Nats.Parser.to_list(v)
+		out = Nats.Parser.encode(v)
 		assert out == "SUB subj sid\r\n"
 
 		
 		v = Nats.Parser.parse("SUB subj q sid\r\n")
 		assert v == {:ok, {:sub, "subj", "q", "sid"}}
 
-    out = Nats.Parser.to_list(v)
+    out = Nats.Parser.encode(v)
 		assert out == "SUB subj q sid\r\n"
 		
 		{ v, _rest } = Nats.Parser.parse("SUB bad\r\n")
@@ -127,13 +127,13 @@ defmodule Nats.ParserTest do
 		v = Nats.Parser.parse("PUB subj 0\r\n")
 		assert v == {:ok, {:pub, "subj", nil, 0}}
 
-    out = Nats.Parser.to_list(v)
+    out = Nats.Parser.encode(v)
 		assert out == "PUB subj 0\r\n"
 
 		v = Nats.Parser.parse("PUB subj ret 18\r\n")
 		assert v == {:ok, {:pub, "subj", "ret", 18}}
 
-    out = Nats.Parser.to_list(v)
+    out = Nats.Parser.encode(v)
 		assert out == "PUB subj ret 18\r\n"
 		
 		v = Nats.Parser.parse("PUB subj ret 5\r\n")
@@ -168,13 +168,13 @@ defmodule Nats.ParserTest do
 		v = Nats.Parser.parse("MSG subj sid 0\r\n")
 		assert v == {:ok, {:msg, "subj", "sid", nil, 0}}
 
-    out = Nats.Parser.to_list(v)
+    out = Nats.Parser.encode(v)
 		assert out == "MSG subj sid 0\r\n"
 		
 		v = Nats.Parser.parse("MSG subj sid ret 19\r\n")
 		assert v == {:ok, {:msg, "subj", "sid", "ret", 19}}
 
-    out = Nats.Parser.to_list(v)
+    out = Nats.Parser.encode(v)
 		assert out == "MSG subj sid ret 19\r\n"
 		
 		{ v, _rest } = Nats.Parser.parse("MSG subj sid ret bad\r\n")

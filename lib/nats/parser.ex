@@ -69,29 +69,29 @@ defmodule Nats.Parser do
 	end
 
 	
-  def to_list({:ok, rest}) do to_list(rest) end
-	def to_list({:ok}) do "+OK\r\n" end
-	def to_list({:ping}) do "PING\r\n" end
-	def to_list({:pong}) do "PONG\r\n" end
-	def to_list({:err, msg}) do "-ERR #{msg}\r\n" end
-	def to_list({:info, json}) do "INFO #{to_json(json)}\r\n" end
-	def to_list({:connect, json}) do "CONNECT #{to_json(json)}\r\n" end
-	def to_list({:msg, sub, sid, nil, size}) do
+  def encode({:ok, rest}) do encode(rest) end
+	def encode({:ok}) do "+OK\r\n" end
+	def encode({:ping}) do "PING\r\n" end
+	def encode({:pong}) do "PONG\r\n" end
+	def encode({:err, msg}) do "-ERR #{msg}\r\n" end
+	def encode({:info, json}) do "INFO #{to_json(json)}\r\n" end
+	def encode({:connect, json}) do "CONNECT #{to_json(json)}\r\n" end
+	def encode({:msg, sub, sid, nil, size}) do
 		"MSG #{sub} #{sid} #{size}\r\n"
 	end
-	def to_list({:msg, sub, sid, queue, size}) do
+	def encode({:msg, sub, sid, queue, size}) do
 		"MSG #{sub} #{sid} #{queue} #{size}\r\n"
 	end
-	def to_list({:pub, sub, nil, size}) do
+	def encode({:pub, sub, nil, size}) do
 		"PUB #{sub} #{size}\r\n"
 	end
-	def to_list({:pub, sub, reply, size}) do
+	def encode({:pub, sub, reply, size}) do
 		"PUB #{sub} #{reply} #{size}\r\n"
 	end
-	def to_list({:sub, sub, nil, sid}) do
+	def encode({:sub, sub, nil, sid}) do
 		"SUB #{sub} #{sid}\r\n"
 	end
-	def to_list({:sub, sub, queue, sid}) do
+	def encode({:sub, sub, queue, sid}) do
 		"SUB #{sub} #{queue} #{sid}\r\n"
 	end
 end
