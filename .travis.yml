@@ -1,8 +1,8 @@
 language: elixir
 otp_release:
   - 18.0
-elixir_release:
+elixir:
   - 1.2.0
 sudo: false
-services:
-  - nats-server
+#services:
+#  - nats-server
