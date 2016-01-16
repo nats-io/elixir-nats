@@ -60,12 +60,25 @@ defmodule Nats.Connection do
 		  #%{sock_state: _con_state, sock: _ignore} = state) do
 		IO.puts ("tcp: #{inspect(data)}")
 		val = Nats.Parser.parse(data)
+    IO.puts "received NATS message: #{inspect(val)}"
+		connect_json = %{
+			"version" => "elixir-alpha",
+			"tls_required" => false,
+			"verbose" => false
+			}
 		case val do
-			{:ok, what} -> IO.puts inspect("received NATS message: #{inspect(what)}")
+			{:ok, msg} -> 
+				case msg do
+					{:info, _json} -> handle_call({:command, {:connect, connect_json}},
+																					self(), state)
+					{:ping} -> handle_call({:command, {:pong}}, self(), state)
+					{:pong} -> {:noreply, state } # fixme pong handling (timeoutagent)
+					{:ok} -> {:noreply, state }
+					{:err, why} -> IO.puts("NATS error: #{why}")
+					_ -> IO.puts "received bad NATS verb: -> #{inspect(msg)}"
+				end
 			other -> IO.puts "received something strange: oops -> #{inspect(other)}"
 		end
 		{:noreply, state}
   end
-
-	
 end
