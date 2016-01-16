@@ -6,5 +6,5 @@ elixir:
 sudo: false
 #services:
 #  - nats-server
-script:
-  - "MIX_ENV=test mix do deps.get, compile, coveralls.travis --pro"
+#script:
+#  - "MIX_ENV=test mix do deps.get, compile, coveralls.travis --pro"
