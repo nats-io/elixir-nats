@@ -8,7 +8,7 @@ The full documentation for exlixir-nats is located [here](#doc-link)
 
 1. Get and install Elixir for your platform
 
-2. Type: "mix deps.get; mix test; mix coveralls; mix compile; mix bench #etc"
+2. Type: "mix deps.get; mix test; mix run examples/pub.exs"
 
 3. Have fun...
 

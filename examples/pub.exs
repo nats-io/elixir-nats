@@ -13,4 +13,5 @@ end
 alias Nats.Connection
 
 {:ok, pid} = Connection.start_link
+send pid, {:command, {:sub, ">", nil, "0"}}
 Pub.receive_loop(pid)
