@@ -29,16 +29,15 @@ defmodule Nats.Connection do
 #			"version" => "elixir-alpha",
 #			"tls_required" => false
 #		}
-#		{:noreply, ns } = handle_call({:command, {:connect, connect_json}},
-#																	self(),
-#																	)
+#		{:noreply, ns } = handle_info({:command, {:connect, connect_json}}, state)
+
 		:ok = :inet.setopts(connected, opts)
 		IO.puts "connected to nats: #{inspect(ns)}"
 		{:ok, ns}
   end
 
-	def handle_call({:command, cmd}, _from, %{sock_state: _con_state,
-																						sock: socket} = state) do
+	def handle_info({:command, cmd}, %{sock_state: _con_state,
+																		 sock: socket} = state) do
 		pack = Nats.Parser.encode(cmd)
     :ok = :gen_tcp.send(socket, pack)
 		IO.puts("sent #{inspect(pack)}...")
@@ -69,9 +68,9 @@ defmodule Nats.Connection do
 		case val do
 			{:ok, msg} -> 
 				case msg do
-					{:info, _json} -> handle_call({:command, {:connect, connect_json}},
-																					self(), state)
-					{:ping} -> handle_call({:command, {:pong}}, self(), state)
+					{:info, _json} -> handle_info({:command, {:connect, connect_json}},
+																				state)
+					{:ping} -> handle_info({:command, {:pong}}, state)
 					{:pong} -> {:noreply, state } # fixme pong handling (timeoutagent)
 					{:ok} -> {:noreply, state }
 					{:err, why} -> IO.puts("NATS error: #{why}")
