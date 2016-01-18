@@ -36,12 +36,35 @@ defmodule Nats.Connection do
 		{:ok, ns}
   end
 
+	def ping(self) do send self, {:command, {:ping}}  end
+	def pong(self) do send self, {:command, {:pong}} end
+	def ok(self) do send self, {:command, {:ok}} end
+	def info(self, map) do send self, {:command, {:info, map}} end
+	def connect(self, map) do send self, {:command, {:connect, map}} end
+	def error(self, msg) do send self, {:command, {:error, msg}} end
+	def subscribe(self, subject) do subscribe(self, subject, nil, subject) end
+	def subscribe(self, subject, sid) do subscribe(self, subject, nil, sid) end
+	def subscribe(self, subject, queue, sid) do
+		send self, {:command, {:sub, subject, queue, sid}}
+	end
+	def pub(self, subject, what) do pub(self, subject, nil, what) end
+	def pub(self, subject, reply, what) do
+		send self, {:command, {:pub, subject, reply, what}}
+	end
+	def msg(self, subject, what) do msg(self, subject, subject, what) end
+	def msg(self, subject, sid, what) do msg(self, subject, sid, nil, what) end
+	def msg(self, subject, sid, reply_queue, what) do
+		send self, {:command, {:sub, subject, sid, reply_queue, what}}
+	end
+	
 	def handle_info({:command, cmd}, %{sock_state: _con_state,
 																		 sock: socket} = state) do
 		pack = Nats.Parser.encode(cmd)
-    :ok = :gen_tcp.send(socket, pack)
-		IO.puts("sent #{inspect(pack)}...")
-		{:noreply, state}
+    case :gen_tcp.send(socket, pack) do
+			:ok -> IO.puts "sent #{inspect(pack)}..."
+			oops -> IO.puts "socket closed: #{inspect(oops)}: ignoring for NOW!!!"
+		end
+		{:noreply, state}																												
   end
 	def handle_info({:tcp_closed, sock}, state) do
 		IO.puts ("tcp_closed: #{inspect(sock)}")
@@ -68,9 +91,10 @@ defmodule Nats.Connection do
 		case val do
 			{:ok, msg} -> 
 				case msg do
-					{:info, _json} -> handle_info({:command, {:connect, connect_json}},
-																				state)
-					{:ping} -> handle_info({:command, {:pong}}, state)
+					{:info, _json} -> connect(self(), connect_json)
+#					handle_info({:command, {:connect, connect_json}},
+#																				state)
+					{:ping} -> pong(self()) # handle_info({:command, {:pong}}, state)
 					{:pong} -> {:noreply, state } # fixme pong handling (timeoutagent)
 					{:ok} -> {:noreply, state }
 					{:err, why} -> IO.puts("NATS error: #{why}")

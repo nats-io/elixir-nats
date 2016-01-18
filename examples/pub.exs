@@ -1,17 +1,27 @@
+alias Nats.Connection
+
 defmodule Pub do
   def receive_loop(pid) do
+		IO.puts "starting receive loop..."
+		receive_loop(pid, 10)
+	end
+  def receive_loop(_, 0) do true end
+  def receive_loop(pid, inactivityCount) do
 		receive do
-			w -> IO.puts("receive: got: #{inspect(w)}")
+			w -> IO.puts("received NATS message: #{inspect(w)}")
 		after 3_000 ->
-			IO.puts "sending ping after 3 seconds..."
-			send pid, {:command, {:ping}}
+			IO.puts "sending ping after 3 seconds of activity..."
+			Connection.ping(pid)
+			inactivityCount = inactivityCount - 1
 		end
-		receive_loop(pid)
+		receive_loop(pid, inactivityCount)
 	end
 end
 
-alias Nats.Connection
-
+subject = ">"
+IO.puts "starting NATS nats link..."
 {:ok, pid} = Connection.start_link
-send pid, {:command, {:sub, ">", nil, "0"}}
+IO.puts "starting subscribing to #{subject}..."
+Connection.subscribe(pid, subject);
 Pub.receive_loop(pid)
+IO.puts "exiting..."
