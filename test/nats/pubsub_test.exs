@@ -26,8 +26,5 @@ defmodule Nats.PubsubTest do
 		Connection.subscribe(pid, subject);
 		receive_loop(pid)
 		IO.puts "exiting..."
-# FIXME: 0.
-#		{:ok, _state } = Nats.Connection.start_link
-#		receive do w -> IO.puts("got: #{w}") end
 	end
 end

@@ -4,36 +4,35 @@ defmodule Nats.ParserTest do
 	use ExUnit.Case, async: true
 
 	test "PING/PONG/OK/ERR parsing" do
-		verb = Nats.Parser.parse("PING\r\n")
-		assert verb == {:ok, {:ping}}
+		{:ok, verb, []}  = Nats.Parser.parse("PING\r\n")
+		assert verb == {:ping}
 		
 		out = Nats.Parser.encode(verb)
 		assert out == "PING\r\n"
 		
-		verb = Nats.Parser.parse("PONG\r\n")
-		assert verb == {:ok, {:pong}}
+		{:ok, verb, []} = Nats.Parser.parse("PONG\r\n")
+		assert verb == {:pong}
 
 		out = Nats.Parser.encode(verb)
 		assert out == "PONG\r\n"
 		
-		verb = Nats.Parser.parse("+OK\r\n")
-		assert verb == {:ok, {:ok}}
+		{:ok, verb, []} = Nats.Parser.parse("+OK\r\n")
+		assert verb == {:ok}
 
 		out = Nats.Parser.encode(verb)
 		assert out == "+OK\r\n"
 		
-    verb = Nats.Parser.parse("-ERR abc\r\n")
-    assert verb == {:ok, {:err, "abc"}}
+    {:ok, verb, []} = Nats.Parser.parse("-ERR abc\r\n")
+    assert verb == {:err, "abc"}
 
 		out = Nats.Parser.encode(verb)
 		assert out == "-ERR abc\r\n"
 		
 		# missing arg...
-    verb = {stat, details} = Nats.Parser.parse("-ERR\r\n")
-		assert stat == :error
-    assert verb == {stat, details}
-    verb = Nats.Parser.parse("-ERR hello world\r\n")
-    assert verb == {:ok, {:err, "hello world"}}
+    {:error, _details} = Nats.Parser.parse("-ERR\r\n")
+#		IO.puts details
+    {:ok, verb, []} = Nats.Parser.parse("-ERR hello world\r\n")
+    assert verb == {:err, "hello world"}
 	end
 	
 	test "INFO/CONNECT parsing" do
@@ -56,47 +55,45 @@ defmodule Nats.ParserTest do
     { v, _rest } = Nats.Parser.parse("INFO true\r\n")
 		assert v == :error
 
-    { v, _rest } = Nats.Parser.parse("INFO {\"key\":true}\r\n")
-		assert v == :ok
+    {:ok, { v, _rest }, []} = Nats.Parser.parse("INFO {\"key\":true}\r\n")
+		assert v == :info
 #		IO.puts inspect(_rest)
 
-    { v, _rest } = Nats.Parser.parse("INFO { \"key\":true, \"embed\": {\"a\": [\"b\",\"c\", 123] } }\r\n")
+    {:ok, { v, _rest }, []} = Nats.Parser.parse("INFO { \"key\":true, \"embed\": {\"a\": [\"b\",\"c\", 123] } }\r\n")
 #		IO.puts inspect(_rest)
-		assert v == :ok
+		assert v == :info
 
-    v = Nats.Parser.parse("INFO {}\r\n")
+    {:ok, v, []} = Nats.Parser.parse("INFO {}\r\n")
 		out = Nats.Parser.encode(v)
 		assert out == "INFO {}\r\n"
 
-    v = Nats.Parser.parse("INFO { \"key\":true}\r\n")
+    {:ok, v, []} = Nats.Parser.parse("INFO { \"key\":true}\r\n")
 		out = Nats.Parser.encode(v)
 		assert out == "INFO {\"key\": true}\r\n"
 
-    v = Nats.Parser.parse("INFO { \"k1\":true, \"k2\": false}\r\n")
+    {:ok, v, []} = Nats.Parser.parse("INFO { \"k1\":true, \"k2\": false}\r\n")
 		out = Nats.Parser.encode(v)
 		assert out == "INFO {\"k1\": true, \"k2\": false}\r\n"
 		
-    { v, _rest } = Nats.Parser.parse("CONNECT {\"key\":true}\r\n")
-		assert v == :ok
+    {:ok, {v, _rest} , []} = Nats.Parser.parse("CONNECT {\"key\":true}\r\n")
+		assert v == :connect
 #		IO.puts inspect(_rest)
 
-    { v, rest } = Nats.Parser.parse("INFO {\"a\":{\"b\":{\"c\":\"zebra\"}}}\r\n")
+    {:ok, {verb, json}, []} =
+			Nats.Parser.parse("INFO {\"a\":{\"b\":{\"c\":\"zebra\"}}}\r\n")
 #		IO.puts inspect(rest)
-		assert v == :ok
-		{ verb, json } = rest
 		assert verb == :info
 		assert json["a"]["b"]["c"] == "zebra"
 
-		v = Nats.Parser.parse("INFO {\"a\":{\"b\":{\"c\":\"zebra\"}}}\r\n")
+		{:ok, v, []} = Nats.Parser.parse("INFO {\"a\":{\"b\":{\"c\":\"zebra\"}}}\r\n")
 		_out = Nats.Parser.encode(v)
 	end
 	
 	test "UNSUB parsing" do
-		{ v, rest } = Nats.Parser.parse("UNSUB subj\r\n")
-		assert v == :ok
+		{:ok, rest, []} =  Nats.Parser.parse("UNSUB subj\r\n")
 		assert rest == {:unsub, "subj", nil}
 
-		{ v, rest } = Nats.Parser.parse("UNSUB subj 10\r\n")
+		{ v, rest, [] } = Nats.Parser.parse("UNSUB subj 10\r\n")
 		assert v == :ok
 		assert rest == {:unsub, "subj", 10}
 
@@ -106,16 +103,15 @@ defmodule Nats.ParserTest do
 	
 	test "SUB parsing" do
 		v = Nats.Parser.parse("SUB subj sid\r\n")
-		assert v == {:ok, {:sub, "subj", nil, "sid"}}
-
-		out = Nats.Parser.encode(v)
+		assert v == {:ok, verb = {:sub, "subj", nil, "sid"}, []}
+		out = Nats.Parser.encode(verb)
 		assert out == "SUB subj sid\r\n"
 
 		
 		v = Nats.Parser.parse("SUB subj q sid\r\n")
-		assert v == {:ok, {:sub, "subj", "q", "sid"}}
+		assert v == {:ok, verb = {:sub, "subj", "q", "sid"}, []}
 
-    out = Nats.Parser.encode(v)
+    out = Nats.Parser.encode(verb)
 		assert out == "SUB subj q sid\r\n"
 		
 		{ v, _rest } = Nats.Parser.parse("SUB bad\r\n")
@@ -125,22 +121,23 @@ defmodule Nats.ParserTest do
 
 	test "PUB parsing" do
 		v = Nats.Parser.parse("PUB subj 0\r\n")
-		assert v == {:ok, {:pub, "subj", nil, 0}}
+		assert v == {:ok, _verb = {:pub, "subj", nil, 0}, []}
 
-    out = Nats.Parser.encode(v)
-		assert out == "PUB subj 0\r\n"
+    out = Nats.Parser.encode({:pub, "subj", nil, "1234"})
+		assert out == "PUB subj 4\r\n1234\r\n"
 
-		v = Nats.Parser.parse("PUB subj ret 18\r\n")
-		assert v == {:ok, {:pub, "subj", "ret", 18}}
+		v = Nats.Parser.parse("PUB subj ret 4\r\n")
+		assert v == {:ok, _verb = {:pub, "subj", "ret", 4}, []}
 
-    out = Nats.Parser.encode(v)
-		assert out == "PUB subj ret 18\r\n"
+		
+    out = Nats.Parser.encode({:pub, "subj", "ret", "io"})
+		assert out == "PUB subj ret 2\r\nio\r\n"
 		
 		v = Nats.Parser.parse("PUB subj ret 5\r\n")
-		assert v == {:ok, {:pub, "subj", "ret", 5}}
+		assert v == {:ok, {:pub, "subj", "ret", 5}, []}
 
 		v = Nats.Parser.parse("PUB subj ret 10\r\n")
-		assert v == {:ok, {:pub, "subj", "ret", 10}}
+		assert v == {:ok, {:pub, "subj", "ret", 10}, []}
 
 		{ v, _rest } = Nats.Parser.parse("PUB subj ret -1\r\n")
 		assert v == :error
@@ -166,15 +163,15 @@ defmodule Nats.ParserTest do
 
 	test "MSG parsing" do
 		v = Nats.Parser.parse("MSG subj sid 0\r\n")
-		assert v == {:ok, {:msg, "subj", "sid", nil, 0}}
+		assert v == {:ok, verb = {:msg, "subj", "sid", nil, 0}, []}
 
-    out = Nats.Parser.encode(v)
+    out = Nats.Parser.encode(verb)
 		assert out == "MSG subj sid 0\r\n"
 		
 		v = Nats.Parser.parse("MSG subj sid ret 19\r\n")
-		assert v == {:ok, {:msg, "subj", "sid", "ret", 19}}
+		assert v == {:ok, verb = {:msg, "subj", "sid", "ret", 19}, []}
 
-    out = Nats.Parser.encode(v)
+    out = Nats.Parser.encode(verb)
 		assert out == "MSG subj sid ret 19\r\n"
 		
 		{ v, _rest } = Nats.Parser.parse("MSG subj sid ret bad\r\n")

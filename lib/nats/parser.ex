@@ -1,22 +1,28 @@
 defmodule Nats.Parser do
 
-	defp parse_json(verb, str) do
+	defp parse_json(state, verb, str) do
 		case :json_lexer.string(to_char_list(str)) do
 			{:ok, tokens, _} ->
 				pres = :json_parser.parse(tokens)
 				case pres do
-					{:ok, json } when is_map(json) -> {:ok, {verb, json}}
-					{:ok, json } -> {:error, "NATS: invalid json in #{verb}: not a json_object: #{inspect(json)}"}
-					{:error, {_, what, mesg}} -> {:error, "NATS: invalid json in #{verb}: #{inspect(what)} #{mesg}"}
-					other -> {:error, "unexpected result #{inspect(other)}"}
+					{:ok, json } when is_map(json) -> {:ok, {verb, json}, state}
+					{:ok, json } -> parse_err(state, "not a json object in #{verb}", json)
+					{:error, {_, what, mesg}} -> parse_err(state, "invalid json in #{verb}", "#{what}: #{mesg}")
+					other -> parse_err(state, "unexpected json parser result in #{verb}", inspect(other))
 				end
-			{:eof, _} -> {:error, "NATS: eof for json in verb: #{verb}"}
-			{:error, why, mesg} -> {:error, "NATS: invalid json in #{verb}: #{inspect(why)}: #{mesg}"}
+			{:eof, _} -> parse_err(state, "json not complete in #{verb}")
+			{:error, {_, why, mesg}} -> parse_err(state, "invalid json tokens in #{verb}", [why, mesg])
 			# safe programming ;-)
-			other -> {:error, "NATS: unexpected lexer result for json: #{inspect(other)}"}
+			other -> parse_err(state, "unexpected json lexer result for json in #{verb}", other)
 		end
 	end
-	
+
+	def parse_err(_state, mesg) do
+		{:error, "NATS: parsing error: #{mesg}"}
+	end
+	def parse_err(state, mesg, what) do
+		parse_err(state, "#{mesg}: #{what}")
+	end
 	@endverb "\r\n"
 	
 	@doc """
@@ -28,27 +34,33 @@ defmodule Nats.Parser do
   ## Examples
 
   iex>  Nats.Protocol.parse("-ERROR foo\r\n+OK\r")
-  {:ok, {:error, "foo"}, "+OK\r" }
+  {:ok, {:error, "foo"}, state}
   iex>  Nats.Protocol.parse("+OK\r")
   {:cont, ... }
   """
-	def parse(thing)
+	def parse(thing) do
+		parse([], thing)
+	end
 
-	def parse(thing) do  # when is_list(thing) do
-		case :nats_lexer.string(to_char_list(thing)) do
-			{:ok, tokens, _} ->
-				pres = :nats_parser.parse(tokens)
-				case pres do
-					{:ok, {:info, str}} -> parse_json(:info, str)
-					{:ok, {:connect, str}} -> parse_json(:connect, str)
-					{:ok, _} -> pres
-					{:error, {_, _, mesg}} -> {:error, "NATS: invalid message: #{mesg}"}
-					other -> {:error, "unexpected result #{other}"}
-				end
-			{:eof, _} -> {:error, "early EOF"}
-			{:error, _, rest} -> {:error, "NATS: invalid message: #{rest}"}
-			# safe programming ;-)
-			other -> {:error, "NATS: unexpected lexer result: #{inspect(other)}"}
+	def parse(state, thing) do
+		res = :nats_lexer.tokens(state, to_char_list(thing))
+#		IO.puts "lex got: #{inspect(res)}"
+		case res do
+			{:done, {:ok, tokens, _}, rest} -> parse_verb(rest, tokens)
+			{:done, {:eof, _}} -> parse_err(state, "message not complete")
+			{:more, state} -> {:more, state}
+			other -> parse_err(state, "unexpected lexer return", other)
+		end
+	end
+
+	def parse_verb(state, thing) do  # when is_list(thing) do
+		pres = :nats_parser.parse(thing)
+		case pres do
+			{:ok, {:info, str}} -> parse_json(state, :info, str)
+			{:ok, {:connect, str}} -> parse_json(state, :connect, str)
+			{:ok, verb } -> {:ok, verb, state}
+			{:error, {_, _, mesg}} -> parse_err(state, "invalid message", mesg)
+			other -> parse_err(state, "unexpected parser return", other)
 		end
 	end
 
@@ -82,11 +94,11 @@ defmodule Nats.Parser do
 	def encode({:msg, sub, sid, queue, size}) do
 		"MSG #{sub} #{sid} #{queue} #{size}\r\n"
 	end
-	def encode({:pub, sub, nil, size}) do
-		"PUB #{sub} #{size}\r\n"
+	def encode({:pub, sub, nil, what}) do
+		"PUB #{sub} #{byte_size(what)}\r\n#{what}\r\n"
 	end
-	def encode({:pub, sub, reply, size}) do
-		"PUB #{sub} #{reply} #{size}\r\n"
+	def encode({:pub, sub, reply, what}) do
+		"PUB #{sub} #{reply} #{byte_size(what)}\r\n#{what}\r\n" 
 	end
 	def encode({:sub, sub, nil, sid}) do
 		"SUB #{sub} #{sid}\r\n"

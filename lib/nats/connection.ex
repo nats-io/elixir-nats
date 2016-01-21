@@ -79,7 +79,7 @@ defmodule Nats.Connection do
 		{ :noreply, state }
 	end
 	def handle_info({:tcp, _sock, data}, state) do
-		  #%{sock_state: _con_state, sock: _ignore} = state) do
+		# %{sock_state: _con_state, sock: _ignore} = state) do
 		IO.puts ("tcp: #{inspect(data)}")
 		val = Nats.Parser.parse(data)
     IO.puts "received NATS message: #{inspect(val)}"
@@ -89,15 +89,14 @@ defmodule Nats.Connection do
 			"verbose" => false
 			}
 		case val do
-			{:ok, msg} -> 
+			{:ok, msg, _} -> 
 				case msg do
 					{:info, _json} -> connect(self(), connect_json)
-#					handle_info({:command, {:connect, connect_json}},
-#																				state)
-					{:ping} -> pong(self()) # handle_info({:command, {:pong}}, state)
-					{:pong} -> {:noreply, state } # fixme pong handling (timeoutagent)
+					{:ping} -> pong(self())
+					{:pong} -> {:noreply, state }
 					{:ok} -> {:noreply, state }
 					{:err, why} -> IO.puts("NATS error: #{why}")
+					{:msg, _sub, _sid, _ret, _size} -> {:noreply, state }
 					_ -> IO.puts "received bad NATS verb: -> #{inspect(msg)}"
 				end
 			other -> IO.puts "received something strange: oops -> #{inspect(other)}"

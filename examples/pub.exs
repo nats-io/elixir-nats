@@ -18,10 +18,15 @@ defmodule Pub do
 	end
 end
 
-subject = ">"
+subject = "elixir.subject"
+subject_pat = ">"
 IO.puts "starting NATS nats link..."
 {:ok, pid} = Connection.start_link
-IO.puts "starting subscribing to #{subject}..."
-Connection.subscribe(pid, subject);
+IO.puts "starting subscribing to #{subject_pat}..."
+receive do
+  after 200 -> IO.puts "starting..."
+end
+Connection.subscribe(pid, subject_pat);
+Connection.pub(pid, subject, "hello NATS world!")
 Pub.receive_loop(pid)
 IO.puts "exiting..."
