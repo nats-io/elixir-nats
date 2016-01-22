@@ -39,24 +39,24 @@ defmodule Nats.Parser do
 		parse(@default_state, string)
 	end
 
-	@doc """
-  Parse a the NATS protocol from the given `stream`.
-
-  Returns {:ok, message, rest} if a message is parsed from the passed stream, 
-  or {:cont, fn } if the message is incomplete.
-
-  ## Examples
-
-  iex>  Nats.Protocol.parse("-ERROR foo\r\n+OK\r")
-  {:ok, {:error, "foo"}, state}
-  iex>  Nats.Protocol.parse("+OK\r")
-  {:cont, ... }
-  """
+#	@doc """
+#  Parse a the NATS protocol from the given `stream`.
+#
+#  Returns {:ok, message, rest} if a message is parsed from the passed stream, 
+#  or {:cont, fn } if the message is incomplete.
+#
+#  ## Examples
+#
+#  iex>  Nats.Protocol.parse("-ERROR foo\r\n+OK\r")
+#  {:ok, {:error, "foo"}, state}
+#  iex>  Nats.Protocol.parse("+OK\r")
+#  {:cont, ... }
+#  """
 	def parse(state = %{ps: :verb, lexs: ls}, thing) do
 		res = :nats_lexer.tokens(ls, to_char_list(thing))
 #		IO.puts "lex got: #{inspect(nls)}"
 		case res do
-			{:done, {:ok, tokens, _}, rest} -> parse_verb(state, tokens, rest)
+			{:done, {:ok, tokens, _}, rest} -> parse_verb(state, tokens, to_string(rest))
 			{:done, {:eof, _}} -> parse_err(state, "message not complete")
 			{:more, nls} -> {:cont, 0, %{state | ls: nls}}
 			other -> parse_err(state, "unexpected lexer return", other)
@@ -68,9 +68,6 @@ defmodule Nats.Parser do
 		case pres do
 			{:ok, {:info, str}} -> parse_json(state, rest, :info, str)
 			{:ok, {:connect, str}} -> parse_json(state, rest, :connect, str)
-			{:ok, verb = {:msg, _, _, len}} -> 
-				parse_body(%{state | ps: :body, size: len + 2, msg: <<>>, verb: verb},
-									 rest)
 			{:ok, verb = {:msg, _, _, _, len}} -> 
 				parse_body(%{state | ps: :body, size: len + 2, msg: <<>>, verb: verb},
 									 rest)
@@ -108,7 +105,7 @@ defmodule Nats.Parser do
 	# We have more data to read in our body AND there is data to be read, yeah!!!
 	# See how much we can slurp up
 	defp parse_body(state = %{ps: :body, size: sz, msg: body}, rest) do
-		rest = :erlang.list_to_binary(rest)
+#		rest = :erlang.list_to_binary(rest)
 		rest_size = byte_size(rest)
 		to_read = min(sz, rest_size)
 		<<read :: binary-size(to_read), remainder::binary>> = rest
@@ -116,46 +113,56 @@ defmodule Nats.Parser do
 		parse_body(%{state | size: sz - to_read, msg: <<body <> read>>}, remainder)
 	end
 	
-	def to_json(false) do "false" end
-	def to_json(true) do "true" end
-	def to_json(nil) do "null" end
-	def to_json(str) when is_binary(str) do "\"#{str}\"" end
+	def to_json(false) do <<"false">> end
+	def to_json(true) do <<"true">> end
+	def to_json(nil) do <<"null">> end
+	def to_json(str) when is_binary(str) do <<?\">> <> str <> <<?\">> end
 	def to_json(map) when is_map(map) do
-		pairs = Enum.join(Enum.map(map, fn({k,v}) -> member_pair(k,v) end), ", ")
-		"{#{pairs}}"
+		<<?\{>> <>
+			Enum.join(Enum.map(map, fn({k,v}) -> member_pair(k,v) end), ", ") <>
+	  <<?}>>
 	end
 	def to_json(array) when is_list(array) do
-		elements = Enum.join(Enum.map(array, fn(x) -> to_json(x) end), ", ")
-		"[#{elements}]"
+		<<?\[>> <>
+			Enum.join(Enum.map(array, fn(x) -> to_json(x) end), ", ") <>
+	  <<?\]>>
 	end
 	defp member_pair(k,v) when is_binary(k) do
-		"#{to_json(k)}: #{to_json(v)}"
+		to_json(k) <> <<": ">> <> to_json(v)
 	end
-
-	
-  def encode({:ok, rest}) do encode(rest) end
-	def encode({:ok}) do "+OK\r\n" end
-	def encode({:ping}) do "PING\r\n" end
-	def encode({:pong}) do "PONG\r\n" end
-	def encode({:err, msg}) do "-ERR #{msg}\r\n" end
-	def encode({:info, json}) do "INFO #{to_json(json)}\r\n" end
-	def encode({:connect, json}) do "CONNECT #{to_json(json)}\r\n" end
-	def encode({:msg, sub, sid, nil, what}) do
-		"MSG #{sub} #{sid} #{byte_size(what)}\r\n#{what}\r\n"
+	def encode(mesg) do
+		encode1(mesg) <> @endverb
 	end
-	def encode({:msg, sub, sid, queue, what}) do
-		"MSG #{sub} #{sid} #{queue} #{byte_size(what)}\r\n#{what}\r\n"
+	defp encode1({:ok}) do <<"+OK">> end
+	defp encode1({:ping}) do <<"PING">> end
+	defp encode1({:pong}) do <<"PONG">> end
+	defp encode1({:err, msg}) do <<"-ERR ">> <> msg end
+	defp encode1({:info, json}) do <<"INFO ">> <> to_json(json) end
+	defp encode1({:connect, json}) do <<"CONNECT ">> <> to_json(json) end
+	defp encode1({:msg, sub, sid, nil, what}) do
+		<<"MSG ">> <> sub <>
+		    <<32>> <> sid <>
+		    <<32>> <> to_string(byte_size(what)) <> @endverb <> what
 	end
-	def encode({:pub, sub, nil, what}) do
-		"PUB #{sub} #{byte_size(what)}\r\n#{what}\r\n"
+	defp encode1({:msg, sub, sid, ret, what}) do
+		<<"MSG ">> <> sub <>
+		    <<32>> <> sid <>
+		    <<32>> <> ret <>
+			  <<32>> <> to_string(byte_size(what)) <> @endverb <> what
 	end
-	def encode({:pub, sub, reply, what}) do
-		"PUB #{sub} #{reply} #{byte_size(what)}\r\n#{what}\r\n" 
+	defp encode1({:pub, sub, nil, what}) do
+		<<"PUB ">> <> sub <> 
+        <<32>> <> to_string(byte_size(what)) <> @endverb <> what
 	end
-	def encode({:sub, sub, nil, sid}) do
-		"SUB #{sub} #{sid}\r\n"
+	defp encode1({:pub, sub, reply, what}) do
+		<<"PUB ">> <> sub <> 
+        <<32>> <> reply <>
+			  <<32>> <> to_string(byte_size(what)) <> @endverb <> what
 	end
-	def encode({:sub, sub, queue, sid}) do
-		"SUB #{sub} #{queue} #{sid}\r\n"
+	defp encode1({:sub, subject, nil, sid}) do
+		<<"SUB ">> <> subject <> <<32>> <> sid
+	end
+	defp encode1({:sub, subject, queue, sid}) do
+		<<"SUB ">> <> subject <> <<32>> <> queue <> <<32>> <> sid
 	end
 end

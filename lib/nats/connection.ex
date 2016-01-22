@@ -24,25 +24,17 @@ defmodule Nats.Connection do
 																				opts,
 																				state[:timeout])
 		ns = %{state | sock: connected}
-#		{:error, reason} ->
-#   {:backoff, B1, state} # inc state.incre
-#		connect_json = %{
-#			"version" => "elixir-alpha",
-#			"tls_required" => false
-#		}
-#		{:noreply, ns } = handle_info({:command, {:connect, connect_json}}, state)
-
 		:ok = :inet.setopts(connected, opts)
 		IO.puts "connected to nats: #{inspect(ns)}"
 		{:ok, ns}
   end
 
-	def ping(self) do send self, {:command, {:ping}}  end
-	def pong(self) do send self, {:command, {:pong}} end
-	def ok(self) do send self, {:command, {:ok}} end
-	def info(self, map) do send self, {:command, {:info, map}} end
-	def connect(self, map) do send self, {:command, {:connect, map}} end
-	def error(self, msg) do send self, {:command, {:error, msg}} end
+	def ping(self) do send self, {:command, {:ping}}; :ok  end
+	def pong(self) do send self, {:command, {:pong}}; :ok end
+	def ok(self) do send self, {:command, {:ok}}; :ok end
+	def info(self, map) do send self, {:command, {:info, map}}; :ok end
+	def connect(self, map) do send self, {:command, {:connect, map}}; :ok end
+	def error(self, msg) do send self, {:command, {:err, msg}} end
 	def subscribe(self, subject) do subscribe(self, subject, nil, subject) end
 	def subscribe(self, subject, sid) do subscribe(self, subject, nil, sid) end
 	def subscribe(self, subject, queue, sid) do
@@ -55,7 +47,7 @@ defmodule Nats.Connection do
 	def msg(self, subject, what) do msg(self, subject, subject, what) end
 	def msg(self, subject, sid, what) do msg(self, subject, sid, nil, what) end
 	def msg(self, subject, sid, reply_queue, what) do
-		send self, {:command, {:sub, subject, sid, reply_queue, what}}
+		send self, {:command, {:msg, subject, sid, reply_queue, what}}
 	end
 	
 	def handle_info({:command, cmd}, %{sock_state: _con_state,
