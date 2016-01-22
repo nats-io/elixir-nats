@@ -2,7 +2,7 @@
 [![Build Status](https://travis-ci.com/nats-io/elixir-nats.svg?token=1fr9zyyTUsvtF9yMNgaJ&branch=master)](https://travis-ci.com/nats-io/elixir-nats)
 [![Coverage Status](https://coveralls.io/repos/nats-io/elixir-nats/badge.svg?branch=master&service=github)](https://coveralls.io/github/nats-io/elixir-nats?branch=master)
 
-The full documentation for exlixir-nats is located [here](#doc-link)
+_Elixir style_ documentation is located [here](doc/index.html)
 
 ## Overview
 
