@@ -1,28 +1,37 @@
 defmodule Nats.Connection do
   use GenServer
 
+  @default_host '127.0.0.1'
   @default_port 4222
-  @conn_timeout 5000
-  @start_state %{state: :want_info, sock: nil,
-                 port: @default_port,
-                 ps: nil,
-                 timeout: @conn_timeout,
-                 opts: [:binary, active: true]}
+  @default_timeout 5000
+  
+  @start_state %{state: :want_info,
+                 sock: nil,
+                 opts: %{tls_required: false, auth: nil,
+                         verbose: false,
+                         timeout: @default_timeout,
+                         host: @default_host, port: @default_port,
+                         socket_opts: [:binary, active: true]},
+                 ps: nil}
   def start_link do
-    start_link @default_port
+    start_link(@default_host, @default_port)
   end
 
-  def start_link(port) do
-    GenServer.start_link(__MODULE__, %{@start_state | port: port})
+  def start_link(host, port \\ @default_port) do
+    state = @start_state
+    state = %{state | opts: %{state.opts | host: host, port: port}}
+    GenServer.start_link(__MODULE__, state)
   end
   def init(state) do
-#    IO.puts "connecting to NATS...#{inspect(state)}"
-    opts = state[:opts]
-    {:ok, connected} = :gen_tcp.connect('localhost', state[:port],
-                                        opts, state[:timeout])
+    IO.puts "connecting to NATS...#{inspect(state)}"
+    {:ok, connected} = :gen_tcp.connect(state.opts.host,
+                                        state.opts.port,
+                                        state.opts.socket_opts,
+                                        state.opts.timeout)
     ns = %{state | sock: connected}
-    :ok = :inet.setopts(connected, opts)
-#    IO.puts "connected to nats: #{inspect(ns)}"
+    # FIXME: jam: required?
+    :ok = :inet.setopts(connected, state.opts.socket_opts)
+    IO.puts "connected to nats: #{inspect(ns)}"
     {:ok, ns}
   end
 
@@ -101,26 +110,34 @@ defmodule Nats.Connection do
     end
   end
   defp nats_err(state, _what) do
-#    IO.puts("NATS: err: #{inspect(what)}")
+    # IO.puts("NATS: err: #{inspect(what)}")
     {:noreply, %{state | state: :error}}
   end
+  defp check_auth(_json_received, json_to_send, _auth_opts) do
+    # FIXME: jam: check auth_required, etc.
+    {:ok, json_to_send }
+  end
   defp nats_info(state = %{state: :want_info}, json) do
-#    IO.puts "NATS: received INFO: #{inspect(json)}"
+    # IO.puts "NATS: received INFO: #{inspect(json)}"
     connect_json = %{
         "version" => "elixir-alpha",
-        "tls_required" => false,
-        "verbose" => false
+        "tls_required" => state.opts.tls_required,
+        "verbose" => state.opts.verbose,
     }
-    if json["tls_required"] && false do
-      opts = []
-      IO.puts "starting SSL handshake:..."
-      res = :ssl.connect(state.sock, opts, state.timeout)
-      IO.puts "done: #{inspect(res)}"
-      {:ok, port} = res
-      state = %{state | sock: port}
+    case check_auth(json, connect_json, state.opts.auth) do
+      {:ok, to_send} ->
+        if to_send["tls_required"] && false do
+          opts = []
+          IO.puts "starting SSL handshake:..."
+          res = :ssl.connect(state.sock, opts, state.timeout)
+          IO.puts "done: #{inspect(res)}"
+          {:ok, port} = res
+          state = %{state | sock: port}
+        end
+        connect(self(), connect_json)
+        {:noreply, %{state | state: :connected}}
+      {:error, why} -> nats_err(state, why)
     end
-    connect(self(), connect_json)
-    {:noreply, %{state | state: :connected}}
   end
   defp nats_info(state, _json) do
 #    IO.puts "NATS: received INFO after handshake: #{inspect(json)}"
