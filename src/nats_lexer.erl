@@ -12,7 +12,7 @@
 -export([format_error/1]).
 
 %% User code. This is placed here to allow extra attributes.
--file("src/nats_lexer.xrl", 56).
+-file("src/nats_lexer.xrl", 54).
 
 -file("/usr/local/Cellar/erlang/18.2.1/lib/erlang/lib/parsetools-2.1.1/include/leexinc.hrl", 14).
 
@@ -1348,74 +1348,73 @@ yyaction(13, _, _, TokenLine) ->
 yyaction(_, _, _, _) -> error.
 
 -compile({inline,yyaction_0/1}).
--file("src/nats_lexer.xrl", 34).
+-file("src/nats_lexer.xrl", 33).
 yyaction_0(TokenLine) ->
      { end_token, { ok, TokenLine } } .
 
 -compile({inline,yyaction_1/1}).
--file("src/nats_lexer.xrl", 35).
+-file("src/nats_lexer.xrl", 34).
 yyaction_1(TokenLine) ->
      { end_token, { ping, TokenLine } } .
 
 -compile({inline,yyaction_2/1}).
--file("src/nats_lexer.xrl", 36).
+-file("src/nats_lexer.xrl", 35).
 yyaction_2(TokenLine) ->
      { end_token, { pong, TokenLine } } .
 
 -compile({inline,yyaction_3/3}).
--file("src/nats_lexer.xrl", 38).
+-file("src/nats_lexer.xrl", 37).
 yyaction_3(TokenChars, TokenLen, TokenLine) ->
      { end_token, { err, TokenLine,
      list_to_binary (lists : sublist (TokenChars, 6, TokenLen - 7)) } } .
 
 -compile({inline,yyaction_4/3}).
--file("src/nats_lexer.xrl", 41).
+-file("src/nats_lexer.xrl", 40).
 yyaction_4(TokenChars, TokenLen, TokenLine) ->
      { end_token, { info, TokenLine, lists : sublist (TokenChars, 6, TokenLen - 7) } } .
 
 -compile({inline,yyaction_5/3}).
--file("src/nats_lexer.xrl", 43).
+-file("src/nats_lexer.xrl", 42).
 yyaction_5(TokenChars, TokenLen, TokenLine) ->
-     { end_token, { connect, TokenLine, lists : sublist (TokenChars, 9,
-     TokenLen - 10) } } .
+     { end_token, { connect, TokenLine, lists : sublist (TokenChars, 9, TokenLen - 10) } } .
 
 -compile({inline,yyaction_6/1}).
--file("src/nats_lexer.xrl", 45).
+-file("src/nats_lexer.xrl", 43).
 yyaction_6(TokenLine) ->
      { token, { msg, TokenLine } } .
 
 -compile({inline,yyaction_7/1}).
--file("src/nats_lexer.xrl", 46).
+-file("src/nats_lexer.xrl", 44).
 yyaction_7(TokenLine) ->
      { token, { sub, TokenLine } } .
 
 -compile({inline,yyaction_8/1}).
--file("src/nats_lexer.xrl", 47).
+-file("src/nats_lexer.xrl", 45).
 yyaction_8(TokenLine) ->
      { token, { pub, TokenLine } } .
 
 -compile({inline,yyaction_9/1}).
--file("src/nats_lexer.xrl", 48).
+-file("src/nats_lexer.xrl", 46).
 yyaction_9(TokenLine) ->
      { token, { unsub, TokenLine } } .
 
 -compile({inline,yyaction_10/0}).
--file("src/nats_lexer.xrl", 49).
+-file("src/nats_lexer.xrl", 47).
 yyaction_10() ->
      skip_token .
 
 -compile({inline,yyaction_11/2}).
--file("src/nats_lexer.xrl", 50).
+-file("src/nats_lexer.xrl", 48).
 yyaction_11(TokenChars, TokenLine) ->
      { token, { num, TokenLine, list_to_integer (TokenChars) } } .
 
 -compile({inline,yyaction_12/2}).
--file("src/nats_lexer.xrl", 51).
+-file("src/nats_lexer.xrl", 49).
 yyaction_12(TokenChars, TokenLine) ->
      { token, { arg, TokenLine, list_to_binary (TokenChars) } } .
 
 -compile({inline,yyaction_13/1}).
--file("src/nats_lexer.xrl", 52).
+-file("src/nats_lexer.xrl", 50).
 yyaction_13(TokenLine) ->
      { end_token, { eol, TokenLine } } .
 

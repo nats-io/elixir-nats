@@ -15,10 +15,10 @@ defmodule Nats.Mixfile do
      package: package,
      description: "NATS framework for Elixir",
 
-		 test_coverage: [tool: ExCoveralls],
+     test_coverage: [tool: ExCoveralls],
      preferred_cli_env: ["coveralls": :test, "coveralls.detail":
-												 :test, "coveralls.post": :test],
-     docs: [readme: "README.md", main: "README",
+                         :test, "coveralls.post": :test],
+     docs: [readme: "README.md", main: "README.md",
             source_ref: "v#{@version}", source_url: @git_url]]
   end
 
@@ -39,6 +39,6 @@ defmodule Nats.Mixfile do
     [maintainers: ["nats-io", "Apcera"],
      licenses: ["MIT"],
      links: %{"GitHub" => @git_url,
-						  "Nats.io" => "https://nats.io/"}]
+              "Nats.io" => "https://nats.io/"}]
   end
 end

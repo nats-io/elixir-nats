@@ -5,11 +5,11 @@ defmodule Nats.Connection do
   @conn_timeout 5000
   @start_state %{sock_state: :handshake, sock: nil,
                  port: @default_port,
-				 ps: nil,
-				 timeout: @conn_timeout,
-				 opts: [:binary, active: true]}
+                 ps: nil,
+                 timeout: @conn_timeout,
+                 opts: [:binary, active: true]}
   def start_link do
-	start_link @default_port
+    start_link @default_port
   end
 
   def start_link(port) do
@@ -47,7 +47,7 @@ defmodule Nats.Connection do
     send self, {:command, {:msg, subject, sid, reply_queue, what}}
   end
   def handle_info({:command, cmd}, %{sock_state: _con_state,
-  									 sock: socket} = state) do
+                                     sock: socket} = state) do
     pack = Nats.Parser.encode(cmd)
     case :gen_tcp.send(socket, pack) do
       :ok -> IO.puts "sent #{inspect(pack)}..."
