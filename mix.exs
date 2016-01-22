@@ -1,7 +1,7 @@
 defmodule Nats.Mixfile do
   use Mix.Project
 
-	@git_url "https://github.com/nats-io/elixir-nats"
+  @git_url "https://github.com/nats-io/elixir-nats"
   @version "0.1.2"
 
   def project do

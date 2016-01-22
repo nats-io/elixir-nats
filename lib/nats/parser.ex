@@ -1,43 +1,38 @@
 defmodule Nats.Parser do
 
-	@default_state %{ps: :verb, lexs: [], msg: nil, size: nil, verb: nil}
-	def init do
-		@default_state
-	end
+  @default_state %{ps: :verb, lexs: [], msg: nil, size: nil, verb: nil}
+  def init do
+    @default_state
+  end
 
-	defp parse_json(state, rest, verb, str) do
-		case :json_lexer.string(str) do
-			{:ok, tokens, _} ->
-				pres = :json_parser.parse(tokens)
-				case pres do
-					{:ok, json } when is_map(json) -> {:ok, {verb, json}, rest, state}
-					{:ok, json } -> parse_err(state, "not a json object in #{verb}", json)
-					{:error, {_, what, mesg}} -> parse_err(state, "invalid json in #{verb}", "#{what}: #{mesg}")
-					other -> parse_err(state, "unexpected json parser result in #{verb}", other)
-				end
-			{:eof, _} -> parse_err(state, "json not complete in #{verb}")
-			{:error, {_, why, mesg}} -> parse_err(state, "invalid json tokens in #{verb}", [why, mesg])
-			# safe programming ;-)
-			other -> parse_err(state, "unexpected json lexer result for json in #{verb}", other)
-		end
-	end
+  defp parse_json(state, rest, verb, str) do
+    case :json_lexer.string(str) do
+      {:ok, tokens, _} ->
+        pres = :json_parser.parse(tokens)
+        case pres do
+          {:ok, json } when is_map(json) -> {:ok, {verb, json}, rest, state}
+          {:ok, json } -> parse_err(state, "not a json object in #{verb}", json)
+          {:error, {_, what, mesg}} -> parse_err(state, "invalid json in #{verb}", "#{what}: #{mesg}")
+          other -> parse_err(state, "unexpected json parser result in #{verb}", other)
+        end
+      {:eof, _} -> parse_err(state, "json not complete in #{verb}")
+      {:error, {_, why, mesg}} -> parse_err(state, "invalid json tokens in #{verb}", [why, mesg])
+      # safe programming ;-)
+      other -> parse_err(state, "unexpected json lexer result for json in #{verb}", other)
+    end
+  end
 
-	defp parse_err(state, mesg) do
-		{:error, "NATS: parsing error: #{mesg}", %{state | ps: :error}}
-	end
-	defp parse_err(state, mesg, what) do
-		parse_err(state, "#{mesg}: #{what}")
-	end
+  defp parse_err(state, mesg) do
+    {:error, "NATS: parsing error: #{mesg}", %{state | ps: :error}}
+  end
+  defp parse_err(state, mesg, what) do
+  	parse_err(state, "#{mesg}: #{what}")
+  end
 	
-	@endverb "\r\n"
+  @endverb "\r\n"
 
-	def parse(string) do
-		parse(nil, string)
-	end
-
-	def parse(nil, string) do
-		parse(@default_state, string)
-	end
+  def parse(string) do parse(nil, string) end
+  def parse(nil, string) do parse(@default_state, string) end
 
 #	@doc """
 #  Parse a the NATS protocol from the given `stream`.
