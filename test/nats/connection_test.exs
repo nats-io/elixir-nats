@@ -2,8 +2,7 @@ defmodule Nats.ConnectionTest do
 	use ExUnit.Case, async: true
 
 	test "Open a default connection" do
-# FIXME: 0.
 #		{:ok, _state } = Nats.Connection.start_link
-#		receive do w -> IO.puts("got: #{w}") end
+#		receive do w -> IO.puts("got: #{w}") after 500 -> :ok end
 	end
 end

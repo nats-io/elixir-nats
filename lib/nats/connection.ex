@@ -5,6 +5,7 @@ defmodule Nats.Connection do
 	@conn_timeout 5000
   @start_state %{sock_state: :handshake, sock: nil,
 								 port: @default_port,
+								 ps: nil,
 								 timeout: @conn_timeout,
 								 opts: [:binary, active: true]}
   def start_link do
@@ -81,22 +82,23 @@ defmodule Nats.Connection do
 	def handle_info({:tcp, _sock, data}, state) do
 		# %{sock_state: _con_state, sock: _ignore} = state) do
 		IO.puts ("tcp: #{inspect(data)}")
-		val = Nats.Parser.parse(data)
+		val = Nats.Parser.parse(state.ps, data)
     IO.puts "received NATS message: #{inspect(val)}"
 		connect_json = %{
 			"version" => "elixir-alpha",
 			"tls_required" => false,
 			"verbose" => false
-			}
+		}
 		case val do
-			{:ok, msg, _} -> 
+			{:ok, msg, rest, ps} -> 
 				case msg do
 					{:info, _json} -> connect(self(), connect_json)
 					{:ping} -> pong(self())
 					{:pong} -> {:noreply, state }
 					{:ok} -> {:noreply, state }
 					{:err, why} -> IO.puts("NATS error: #{why}")
-					{:msg, _sub, _sid, _ret, _size} -> {:noreply, state }
+					{:msg, sub, sid, rep, what} -> {:noreply, state }
+					{:pub, sub, rep, what} -> {:noreply, state }
 					_ -> IO.puts "received bad NATS verb: -> #{inspect(msg)}"
 				end
 			other -> IO.puts "received something strange: oops -> #{inspect(other)}"
