@@ -1,7 +1,7 @@
 before_install:
-  - go get github.com/nats-io/gnatsd
   - export GOPATH=$HOME/gopath
   - export PATH=$PATH:$GOPATH/bin
+  - go get github.com/nats-io/gnatsd
 language: elixir
 otp_release:
   - 18.0
