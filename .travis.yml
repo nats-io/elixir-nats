@@ -1,8 +1,7 @@
 before_install:
+  - go get github.com/nats-io/gnatsd
   - export GOPATH=$HOME/gopath
   - export PATH=$PATH:$GOPATH/bin
-install:
-  - go get github.com/nats-io/gnatsd
 language: elixir
 otp_release:
   - 18.0
@@ -10,4 +9,4 @@ elixir:
   - 1.2.0
 sudo: false
 #script:
-#  - "MIX_ENV=test mix do deps.get, compile, coveralls.travis --pro"
+#  - "MIX_ENV=test mix do deps.get, compile, test --cover"
