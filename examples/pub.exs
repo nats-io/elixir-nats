@@ -1,32 +1,21 @@
 alias Nats.Connection
 
 defmodule Pub do
-  def receive_loop(pid) do
-    IO.puts "starting receive loop..."
-    receive_loop(pid, 5)
+  def pub_loop(pid, sub, msg, count) do
+    IO.puts "starting: publishing #{count} messages..."
+    pub_loop1(pid, sub, msg, count)
   end
-  def receive_loop(_, 0) do true end
-  def receive_loop(pid, inactivityCount) do
-    receive do
-      w -> IO.puts("received NATS message: #{inspect(w)}")
-      after 2_000 ->
-        IO.puts "sending ping after 3 seconds of activity..."
-        Connection.ping(pid)
-        inactivityCount = inactivityCount - 1
-      end
-    receive_loop(pid, inactivityCount)
+  def pub_loop1(_, _, _, 0) do true end
+  def pub_loop1(pid, sub, msg, count) do
+    pub_loop1(pid, sub, msg, count - 1)
+    Connection.pub(pid, sub, "#{count}: #{msg}")
   end
 end
 
 subject = "elixir.subject"
-subject_pat = ">"
+msg = "hello NATS world"
 IO.puts "starting NATS nats link..."
 {:ok, pid} = Connection.start_link
-IO.puts "starting subscribing to #{subject_pat}..."
-receive do
-  after 200 -> IO.puts "starting..."
-end
-Connection.subscribe(pid, subject_pat);
-Connection.pub(pid, subject, "hello NATS world!")
-Pub.receive_loop(pid)
+receive do after 500 -> true end
+Pub.pub_loop(pid, subject, msg, 10)
 IO.puts "exiting..."

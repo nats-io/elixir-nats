@@ -93,6 +93,10 @@ defmodule Nats.Connection do
     nats_err(state, "connection closed")
 #    { :noreply, %{ state }
   end
+  def handle_info({:ssl_closed, _sock}, state) do
+    nats_err(state, "connection closed")
+#    { :noreply, %{ state }
+  end
   def handle_info({:tcp_error, _sock, reason}, state) do
     nats_err(state, "tcp transport error #{inspect(reason)}")
     { :noreply, state }
@@ -136,7 +140,7 @@ defmodule Nats.Connection do
     server_want_auth = json_received["auth_required"] || false
     we_want_auth = Enum.count(auth_opts) != 0
     auth_match = {server_want_auth, we_want_auth}
-    info_log state, ["checking auth", auth_match]
+    debug_log state, ["checking auth", auth_match]
     case auth_match do
       {x, x} -> {:ok, Map.merge(json_to_send, auth_opts)}
       _ -> {:error, "client and server disagree on authorization"}
@@ -153,9 +157,9 @@ defmodule Nats.Connection do
       {:ok, to_send} ->
         if to_send["tls_required"] do
           opts = state.opts.ssl_opts
-          info_log state, ["upgrading to tls with", opts]
+          debug_log state, ["upgrading to tls with", opts]
           res = :ssl.connect(state.sock, opts, state.opts.timeout)
-          info_log state, ["tls handshake completed", res]
+          debug_log state, ["tls handshake completed", res]
           {:ok, port} = res
           state = %{state | sock: port, send_fn: &:ssl.send/2}
         end
@@ -189,7 +193,7 @@ defmodule Nats.Connection do
     {:noreply,state}
   end
   defp nats_msg(state = %{state: :connected}, sub, sid, ret, body) do
-    debug_log state, ["MSG sub", sub, "sid", sid, "ret", ret, "body", body]
+    debug_log state, ["MSG sub", sub, sid, ret, body]
     {:noreply, state}
   end
   defp nats_msg(state, _sub, _sid, _ret, _what) do
@@ -197,7 +201,7 @@ defmodule Nats.Connection do
     {:noreply, state}
   end
   defp nats_pub(state = %{state: :connected}, sub, ret, body) do
-    debug_log state, ["received PUB: sub", sub, "ret", ret, "body", body]
+    debug_log state, ["received PUB: sub", sub, ret, body]
     {:noreply, state}
   end
   defp nats_pub(state, _sub, _ret, _what) do
@@ -205,4 +209,3 @@ defmodule Nats.Connection do
     {:noreply, state}
   end
 end
-
