@@ -1,5 +1,6 @@
 defmodule Nats.Connection do
   use GenServer
+  require Logger
 
   @default_host '127.0.0.1'
   @default_port 4222
@@ -7,21 +8,44 @@ defmodule Nats.Connection do
   
   @start_state %{state: :want_info,
                  sock: nil,
+                 send_fn: &:gen_tcp.send/2,
                  opts: %{tls_required: false, auth: %{}, # "user" => "user",
                                                        # "pass" => "pass"},
                          verbose: false,
                          timeout: @default_timeout,
                          host: @default_host, port: @default_port,
-                         socket_opts: [:binary, active: true]},
-                 ps: nil}
+                         socket_opts: [:binary, active: true],
+                         ssl_opts: []},
+                 ps: nil,
+                 log_header: nil}
+
+  defp format(x) when is_binary(x) do x end
+  defp format(x) when is_list(x) do Enum.join(Enum.map(x, &(format(&1))),
+                                                  " ") end
+  defp format(x), do: inspect(x)
+  defp log(level, state, what) do
+    Logger.log level, fn ->
+#      if is_list(what), do: what = Enum.join(what, " ")
+      Enum.join([state.log_header, format(what)], ": ")
+    end
+  end
+  defp debug_log(state, what), do: log(:debug, state, what)
+  defp err_log(state, what), do: log(:error, state, what)
+  defp info_log(state, what), do: log(:info, state, what)
+  
+
+  
   def start_link do start_link(@default_host, @default_port) end
   def start_link(host, port \\ @default_port) do
     state = @start_state
-    state = %{state | opts: %{state.opts | host: host, port: port}}
+    state = %{state | opts: %{state.opts | host: host, port: port},
+              log_header: "NATS: #{inspect(self())}@#{host}:#{port}: "
+             }
+    debug_log state, "starting link"
     GenServer.start_link(__MODULE__, state)
   end
   def init(state) do
-    IO.puts "connecting to NATS...#{inspect(state)}"
+    debug_log state, "connecting"
     {:ok, connected} = :gen_tcp.connect(state.opts.host,
                                         state.opts.port,
                                         state.opts.socket_opts,
@@ -29,7 +53,8 @@ defmodule Nats.Connection do
     ns = %{state | sock: connected}
     # FIXME: jam: required?
     :ok = :inet.setopts(connected, state.opts.socket_opts)
-    IO.puts "connected to nats: #{inspect(ns)}"
+    #IO.puts "connected to nats: #{inspect(ns)}"
+    info_log state, "connected"
     {:ok, ns}
   end
 
@@ -55,16 +80,21 @@ defmodule Nats.Connection do
   end
   def handle_info({:command, cmd}, state) do
     pack = Nats.Parser.encode(cmd)
-    case :gen_tcp.send(state.sock, pack) do
-      # case :ssl.send(state.socket, pack) do
-      :ok -> :ok # IO.puts "sent #{inspect(pack)}..."
-      {:error, :closed} -> IO.puts "socket closed: ignoring for NOW!!"
-      oops -> IO.puts "NATS send unexpected result: #{inspect(oops)}"
+    debug_log state, ["sending", pack]
+    case state.send_fn.(state.sock, pack) do
+      :ok ->
+        debug_log state, ["sent", pack]
+      {:error, :closed} -> err_log state, "socket closed"
+      oops -> err_log state, ["unexpected send result", oops]
     end
     {:noreply, state}
   end
-  def handle_info({:tcp_closed, _sock}, state) do { :noreply, state } end
-  def handle_info({:tcp_error, _sock, _reason}, state) do
+  def handle_info({:tcp_closed, _sock}, state) do
+    nats_err(state, "connection closed")
+#    { :noreply, %{ state }
+  end
+  def handle_info({:tcp_error, _sock, reason}, state) do
+    nats_err(state, "tcp transport error #{inspect(reason)}")
     { :noreply, state }
   end
   def handle_info({:tcp_passive, _sock}, state) do { :noreply, state } end
@@ -72,16 +102,18 @@ defmodule Nats.Connection do
   def handle_info({:ssl, _sock, data}, state) do handle_packet(state, data) end
   defp handle_packet(state, <<>>) do {:noreply, state} end
   defp handle_packet(state, packet) do
+    debug_log state, ["received packet", packet]
     pres = Nats.Parser.parse(state.ps, packet)
-#    IO.puts "received NATS packet: #{inspect(pres)}; raw: #{inspect(packet)}"
     case pres do
       {:ok, msg, rest, nps} ->
+        debug_log state, ["parsed packet", msg]
         {:noreply, ns } = handle_packet1(%{state | ps: nps}, msg)
         handle_packet(ns, rest)
       other -> nats_err(state, "invalid parser result: #{inspect(other)}")
     end
   end
   defp handle_packet1(state, msg) do
+    debug_log state, ["dispatching packet", elem(msg, 0)]
     case msg do
       {:info, json} -> nats_info(state, json)
       {:connect, json} -> nats_connect(state, json)
@@ -95,13 +127,17 @@ defmodule Nats.Connection do
     end
   end
   defp nats_err(state, what) do
-    IO.puts ("received nats_err: #{inspect(what)}")
+    err_log state, what
     {:noreply, %{state | state: :error}}
   end
-  defp check_auth(json_received = %{}, json_to_send = %{}, auth_opts = %{}) do
+  defp check_auth(state,
+                  json_received = %{},
+                  json_to_send = %{}, auth_opts = %{}) do
     server_want_auth = json_received["auth_required"] || false
     we_want_auth = Enum.count(auth_opts) != 0
-    case {server_want_auth, we_want_auth} do
+    auth_match = {server_want_auth, we_want_auth}
+    info_log state, ["checking auth", auth_match]
+    case auth_match do
       {x, x} -> {:ok, Map.merge(json_to_send, auth_opts)}
       _ -> {:error, "client and server disagree on authorization"}
     end
@@ -113,60 +149,59 @@ defmodule Nats.Connection do
         "tls_required" => state.opts.tls_required,
         "verbose" => state.opts.verbose,
     }
-    case check_auth(json, connect_json, state.opts.auth) do
+    case check_auth(state, json, connect_json, state.opts.auth) do
       {:ok, to_send} ->
-        if to_send["tls_required"]  && false do
-          opts = []
-          IO.puts "starting SSL handshake:..."
-          res = :ssl.connect(state.sock, opts, state.timeout)
-          IO.puts "done: #{inspect(res)}"
-          {:noreply, port} = res
-          state = %{state | sock: port}
+        if to_send["tls_required"] do
+          opts = state.opts.ssl_opts
+          info_log state, ["upgrading to tls with", opts]
+          res = :ssl.connect(state.sock, opts, state.opts.timeout)
+          info_log state, ["tls handshake completed", res]
+          {:ok, port} = res
+          state = %{state | sock: port, send_fn: &:ssl.send/2}
         end
+        debug_log state, "completing handshake"
         connect(self(), to_send)
+        debug_log state, "handshake completed"
         {:noreply, %{state | state: :connected}}
       {:error, why} -> nats_err(state, why)
     end
   end
-  defp nats_info(state, _json) do
-#    IO.puts "NATS: received INFO after handshake: #{inspect(json)}"
+  defp nats_info(state, json) do
+    info_log state, ["received INFO after handshake", json]
     {:noreply, state}
   end
   defp nats_connect(state = %{state: :want_connect}, _json) do
-#    IO.puts "NATS: received CONNECT: #{inspect(json)}"
+    debug_log state, "received connect; transitioning to connected"
     {:noreply, %{state | state: :connected}}
   end
-  defp nats_connect(state, _json) do
-#    IO.puts "NATS: received unexpected CONNECT: #{inspect(json)}"
+  defp nats_connect(state, json) do
+    err_log state, ["received CONNECT after handshake", json]
     {:noreply, state}
   end
   defp nats_ping(state) do
-#    IO.puts "NATS: received PING"
     pong(self())
     {:noreply, state}
   end
   defp nats_pong(state) do
-#    IO.puts "NATS: received PONG"
     {:noreply, state}
   end
   defp nats_ok(state) do
-#    IO.puts "NATS: received OK"
     {:noreply,state}
   end
-  defp nats_msg(state = %{state: :connected}, _sub, _sid, _ret, _what) do
-#    IO.puts "NATS: received MSG #{sub} #{sid} #{ret} #{what}"
+  defp nats_msg(state = %{state: :connected}, sub, sid, ret, body) do
+    debug_log state, ["MSG sub", sub, "sid", sid, "ret", ret, "body", body]
     {:noreply, state}
   end
   defp nats_msg(state, _sub, _sid, _ret, _what) do
-#    IO.puts "NATS: received MSG before handshake"
+    err_log state, ["received MSG before handshake"]
     {:noreply, state}
   end
-  defp nats_pub(state = %{state: :connected}, _sub, _ret, _what) do
-#    IO.puts "NATS: received PUB: #{sub} #{ret} #{what}"
+  defp nats_pub(state = %{state: :connected}, sub, ret, body) do
+    debug_log state, ["received PUB: sub", sub, "ret", ret, "body", body]
     {:noreply, state}
   end
   defp nats_pub(state, _sub, _ret, _what) do
-#    IO.puts "NATS: received PUB before handshake"
+    err_log state, "received PUB before handshake"
     {:noreply, state}
   end
 end
