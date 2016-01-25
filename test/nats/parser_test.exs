@@ -80,14 +80,39 @@ defmodule Nats.ParserTest do
     assert v == :connect
     #  IO.puts inspect(_rest)
 
+    {:error, _, _} = Nats.Parser.parse("INFO []\r\n")
+    {:error, _, _} = Nats.Parser.parse("INFO [\r\n")
+    {:error, _, _} = Nats.Parser.parse("INFO @\r\n")
+    {:error, _, _} = Nats.Parser.parse("INFO [false, true,false,]\r\n")
+
+
+    {:cont, _howmany, state} = Nats.Parser.parse("CON")
+    {:ok, {:connect, %{}}, "", _} = Nats.Parser.parse(state, "NECT {}\r\n")
+
+    {:ok, _, "+OK\r\n", _} = Nats.Parser.parse("PUB S S 1\r\n1\r\n+OK\r\n")
+    {:ok, _, "", _} = Nats.Parser.parse("PUB S S 1\r\n1\r\n")
+
+    {:error, _, _} = Nats.Parser.parse("PUB S S 1\r\n1\rZ+OK\r\n")
+    
+    
     {:ok, {verb, json}, "", _} =
       Nats.Parser.parse("INFO {\"a\":{\"b\":{\"c\":\"zebra\"}}}\r\n")
     #  IO.puts inspect(rest)
     assert verb == :info
     assert json["a"]["b"]["c"] == "zebra"
 
+    {:ok, verb, "", _} =
+      Nats.Parser.parse("INFO {\"a\": [true,false,null,\"abc\",[1],2.2,[]]}\r\n")
+    _out = Nats.Parser.encode(verb)
+#    IO.puts "NATS: verb -> #{inspect(verb)}"
+#    IO.puts "NATS: out ->  #{inspect(out)}"
+    
     {:ok, v, "", _} =
       Nats.Parser.parse("INFO {\"a\":{\"b\":{\"c\":\"zebra\"}}}\r\n")
+    _out = Nats.Parser.encode(v)
+
+    {:ok, v, "", _} =
+      Nats.Parser.parse("CONNECT {\"a\":{\"b\":{\"c\":\"zebra\"}}}\r\n")
     _out = Nats.Parser.encode(v)
   end
  
@@ -118,6 +143,14 @@ defmodule Nats.ParserTest do
     
     { v, _rest, _ } = Nats.Parser.parse("SUB bad\r\n")
     assert v == :error
+
+    { :ok, sub, _, _ } = Nats.Parser.parse("SUB S s\r\n")
+    res = Nats.Parser.encode(sub)
+    assert res == <<"SUB S s\r\n">>
+
+    { :ok, sub, _, _ } = Nats.Parser.parse("SUB S Q s\r\n")
+    res = Nats.Parser.encode(sub)
+    assert res == <<"SUB S Q s\r\n">>
   end
 
   test "PUB parsing" do
@@ -160,6 +193,14 @@ defmodule Nats.ParserTest do
     assert v == :error
     { v, _rest, _ } = Nats.Parser.parse("PUB \r\n")
     assert v == :error
+
+    { :ok, pub, _, _ } = Nats.Parser.parse("PUB S 0\r\n\r\n")
+    res = Nats.Parser.encode(pub)
+    assert res == <<"PUB S 0\r\n\r\n">>
+    
+    { :ok, pub, _, _ } = Nats.Parser.parse("PUB S R 0\r\n\r\n")
+    res = Nats.Parser.encode(pub)
+    assert res == <<"PUB S R 0\r\n\r\n">>
   end
 
   test "MSG parsing" do
@@ -188,6 +229,14 @@ defmodule Nats.ParserTest do
     { v, _rest, _ } = Nats.Parser.parse("MSG \r\n")
     assert v == :error
 
+    { :ok, msg, _, _ } = Nats.Parser.parse("MSG S s 0\r\n\r\n")
+    res = Nats.Parser.encode(msg)
+    assert res == <<"MSG S s 0\r\n\r\n">>
+    
+    { :ok, msg, _, _ } = Nats.Parser.parse("MSG S s R 0\r\n\r\n")
+    res = Nats.Parser.encode(msg)
+    assert res == <<"MSG S s R 0\r\n\r\n">>
+    
     { v, _rest, _ } = Nats.Parser.parse("MSG sub ret 0\r\n")
     assert v == :error
     { v, _rest, _ } = Nats.Parser.parse("MSG sub 0\r\n")

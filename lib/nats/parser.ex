@@ -26,7 +26,7 @@ defmodule Nats.Parser do
     {:error, "NATS: parsing error: #{mesg}", %{state | ps: :error}}
   end
   defp parse_err(state, mesg, what) do
-    parse_err(state, "#{mesg}: #{what}")
+    parse_err(state, "#{mesg}: #{inspect(what)}")
   end
 
   @endverb "\r\n"
@@ -47,13 +47,14 @@ defmodule Nats.Parser do
 #  iex>  Nats.Protocol.parse("+OK\r")
 #  {:cont, ... }
 #  """
+
   def parse(state = %{ps: :verb, lexs: ls}, thing) do
     res = :nats_lexer.tokens(ls, to_char_list(thing))
     #IO.puts "lex got: #{inspect(nls)}"
     case res do
       {:done, {:ok, tokens, _}, rest} -> parse_verb(state, tokens, to_string(rest))
       {:done, {:eof, _}} -> parse_err(state, "message not complete")
-      {:more, nls} -> {:cont, 0, %{state | ls: nls}}
+      {:more, nls} -> {:cont, 0, %{state | lexs: nls}}
       other -> parse_err(state, "unexpected lexer return", other)
     end
   end
@@ -111,6 +112,7 @@ defmodule Nats.Parser do
   def to_json(false) do <<"false">> end
   def to_json(true) do <<"true">> end
   def to_json(nil) do <<"null">> end
+  def to_json(n) when is_number(n) do <<"#{n}">> end
   def to_json(str) when is_binary(str) do <<?\">> <> str <> <<?\">> end
   def to_json(map) when is_map(map) do
     <<?\{>> <>
