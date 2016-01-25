@@ -7,7 +7,8 @@ defmodule Nats.Connection do
   
   @start_state %{state: :want_info,
                  sock: nil,
-                 opts: %{tls_required: false, auth: nil,
+                 opts: %{tls_required: false, auth: %{}, # "user" => "user",
+                                                       # "pass" => "pass"},
                          verbose: false,
                          timeout: @default_timeout,
                          host: @default_host, port: @default_port,
@@ -97,9 +98,13 @@ defmodule Nats.Connection do
     IO.puts ("received nats_err: #{inspect(what)}")
     {:noreply, %{state | state: :error}}
   end
-  defp check_auth(_json_received, json_to_send, _auth_opts) do
-    # FIXME: jam: check auth_required, etc.
-    {:noreply, json_to_send }
+  defp check_auth(json_received = %{}, json_to_send = %{}, auth_opts = %{}) do
+    server_want_auth = json_received["auth_required"] || false
+    we_want_auth = Enum.count(auth_opts) != 0
+    case {server_want_auth, we_want_auth} do
+      {x, x} -> {:ok, Map.merge(json_to_send, auth_opts)}
+      _ -> {:error, "client and server disagree on authorization"}
+    end
   end
   defp nats_info(state = %{state: :want_info}, json) do
     # IO.puts "NATS: received INFO: #{inspect(json)}"
@@ -109,8 +114,8 @@ defmodule Nats.Connection do
         "verbose" => state.opts.verbose,
     }
     case check_auth(json, connect_json, state.opts.auth) do
-      {:noreply, to_send} ->
-        if to_send["tls_required"] && false do
+      {:ok, to_send} ->
+        if to_send["tls_required"]  && false do
           opts = []
           IO.puts "starting SSL handshake:..."
           res = :ssl.connect(state.sock, opts, state.timeout)
@@ -118,7 +123,7 @@ defmodule Nats.Connection do
           {:noreply, port} = res
           state = %{state | sock: port}
         end
-        connect(self(), connect_json)
+        connect(self(), to_send)
         {:noreply, %{state | state: :connected}}
       {:error, why} -> nats_err(state, why)
     end
