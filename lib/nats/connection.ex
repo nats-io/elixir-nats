@@ -2,20 +2,11 @@ defmodule Nats.Connection do
   use GenServer
   require Logger
 
-  @default_host '127.0.0.1'
-  @default_port 4222
-  @default_timeout 5000
-  
   @start_state %{state: :want_info,
                  sock: nil,
+                 worker: nil,
                  send_fn: &:gen_tcp.send/2,
-                 opts: %{tls_required: false, auth: %{}, # "user" => "user",
-                                                       # "pass" => "pass"},
-                         verbose: false,
-                         timeout: @default_timeout,
-                         host: @default_host, port: @default_port,
-                         socket_opts: [:binary, active: true],
-                         ssl_opts: []},
+                 opts: %{},
                  ps: nil,
                  log_header: nil}
 
@@ -33,29 +24,40 @@ defmodule Nats.Connection do
   defp err_log(state, what), do: log(:error, state, what)
   defp info_log(state, what), do: log(:info, state, what)
   
-
-  
-  def start_link do start_link(@default_host, @default_port) end
-  def start_link(host, port \\ @default_port) do
+  def start_link(worker, opts) when is_map (opts) do
+#    IO.puts "opts -> #{inspect(opts)}"
     state = @start_state
-    state = %{state | opts: %{state.opts | host: host, port: port},
-              log_header: "NATS: #{inspect(self())}@#{host}:#{port}: "
+    state = %{state |
+              worker: worker,
+              opts: opts,
+              log_header: "NATS: #{inspect(self())}: "
              }
     debug_log state, "starting link"
     GenServer.start_link(__MODULE__, state)
   end
+
   def init(state) do
-    debug_log state, "connecting"
-    {:ok, connected} = :gen_tcp.connect(state.opts.host,
-                                        state.opts.port,
-                                        state.opts.socket_opts,
-                                        state.opts.timeout)
-    ns = %{state | sock: connected}
-    # FIXME: jam: required?
-    :ok = :inet.setopts(connected, state.opts.socket_opts)
-    #IO.puts "connected to nats: #{inspect(ns)}"
-    info_log state, "connected"
-    {:ok, ns}
+#    IO.puts "client->  #{inspect(state)}"
+    opts = state.opts
+    host = opts.host
+    port = opts.port
+    hpstr = "#{host}:#{port}"
+    info_log state, "connecting to #{hpstr}..."
+    case :gen_tcp.connect(host, port,
+                          opts.socket_opts,
+                          opts.timeout) do
+      {:ok, connected} ->
+        state = %{state |
+                  sock: connected,
+                  log_header: state.log_header <> "#{hpstr}: "}
+        # FIXME: jam: required?
+        :ok = :inet.setopts(connected, state.opts.socket_opts)
+        #IO.puts "connected to nats: #{inspect(state)}"
+        info_log state, "connected"
+        {:ok, state}
+      other ->
+        err_log(state, ["error connecting to #{hpstr}", other])
+    end
   end
 
   def ping(self) do send self, {:command, {:ping}}; :ok end
@@ -132,6 +134,7 @@ defmodule Nats.Connection do
   end
   defp nats_err(state, what) do
     err_log state, what
+    send state.worker, {:error, self(), what}
     {:noreply, %{state | state: :error}}
   end
   defp check_auth(state,
@@ -166,6 +169,7 @@ defmodule Nats.Connection do
         debug_log state, "completing handshake"
         connect(self(), to_send)
         debug_log state, "handshake completed"
+        send state.worker, {:connected, self()}
         {:noreply, %{state | state: :connected}}
       {:error, why} -> nats_err(state, why)
     end
@@ -194,6 +198,7 @@ defmodule Nats.Connection do
   end
   defp nats_msg(state = %{state: :connected}, sub, sid, ret, body) do
     debug_log state, ["MSG sub", sub, sid, ret, body]
+    send state.worker, {:msg, sub, sid, ret, body}
     {:noreply, state}
   end
   defp nats_msg(state, _sub, _sid, _ret, _what) do

@@ -1,18 +1,17 @@
 defmodule Nats.PubsubTest do
   use ExUnit.Case, async: true
-  alias Nats.Connection
+  alias Nats.Client
 
   def receive_loop(pid) do
-    IO.puts "starting receive loop..."
     receive_loop(pid, 5)
   end
   def receive_loop(_, 0) do true end
   def receive_loop(pid, inactivityCount) do
     receive do
-      w -> IO.puts("received NATS message: #{inspect(w)}")
+      _w ->
+        # IO.puts("received NATS message: #{inspect(_w)}")
+        true
     after 3_000 ->
-        IO.puts "sending ping after 3 seconds of activity..."
-        Connection.ping(pid)
         inactivityCount = inactivityCount - 1
     end
     receive_loop(pid, inactivityCount)
@@ -21,11 +20,8 @@ defmodule Nats.PubsubTest do
   @tag disabled: true
   test "Open and test a connection..." do
     subject = ">"
-    IO.puts "starting NATS nats link..."
-    {:ok, pid} = Connection.start_link
-    IO.puts "starting subscribing to #{subject}..."
-    Connection.subscribe(pid, subject);
+    {:ok, pid} = Client.start_link
+    Client.subscribe(pid, subject);
     receive_loop(pid)
-    IO.puts "exiting..."
   end
 end

@@ -1,4 +1,4 @@
-alias Nats.Connection
+alias Nats.Client
 
 defmodule Sub do
   def receive_loop(pid), do: receive_loop(pid, :infinite)
@@ -10,15 +10,17 @@ defmodule Sub do
   defp receive_loop1(pid, num_left) do
     receive do
       w -> IO.puts("received NATS message: #{inspect(w)}")
-      receive_loop1(pid, num_left - 1)
+      continue(pid, num_left)
     end
   end
+  defp continue(pid, :infinite), do: receive_loop1(pid, :infinite)
+  defp continue(pid, num), do: receive_loop1(pid, num - 1)
 end
 
 subject_pat = ">"
 IO.puts "starting NATS nats link..."
-{:ok, pid} = Connection.start_link
+{:ok, pid} = Client.start_link
 receive do after 500 -> true end
-Connection.subscribe(pid, subject_pat);
+Client.subscribe(pid, subject_pat);
 Sub.receive_loop(pid)
 IO.puts "exiting..."
