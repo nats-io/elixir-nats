@@ -8,7 +8,7 @@ defmodule Nats.ConnectionTest do
               auth: %{}, # "user" => "user", "pass" => "pass"},
               verbose: false,
               timeout: 5000,
-              host: '127.0.0.1', port: 4222,
+              host: "127.0.0.1", port: 4222,
               socket_opts: [:binary, active: true],
               ssl_opts: []}
     {:ok, con } = Connection.start_link(self(), opts)

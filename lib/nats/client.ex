@@ -2,7 +2,7 @@ defmodule Nats.Client do
   use GenServer
   require Logger
 
-  @default_host '127.0.0.1'
+  @default_host "127.0.0.1"
   @default_port 4222
   @default_timeout 5000
 
@@ -13,7 +13,9 @@ defmodule Nats.Client do
                    host: @default_host, port: @default_port,
                    socket_opts: [:binary, active: true],
                    ssl_opts: []}
-  @start_state %{ conn: nil, opts: %{}, status: :starting, why: nil }
+  @start_state %{ conn: nil, opts: %{}, status: :starting, why: nil,
+                  subs_by_pid: %{},
+                  subs_by_sid: %{}}
 
   def start_link(opts \\ @default_opts) do
     GenServer.start_link(__MODULE__, opts)
@@ -52,10 +54,7 @@ defmodule Nats.Client do
     GenServer.call(self, {:pub, subject, reply, what})
   end
 
-  
-  def subscribe(self, subject) do subscribe(self, subject, nil, subject) end
-  def subscribe(self, subject, sid) do subscribe(self, subject, nil, sid) end
-  def subscribe(self, subject, queue, sid) do
-    GenServer.call(self, {:sub, subject, queue, sid})
-  end
+  def subscribe(self, subject), do: subscribe(self, subject, nil)
+  def subscribe(self, subject, queue),
+    do: GenServer.call(self, {:sub, subject, queue, subject})
 end
