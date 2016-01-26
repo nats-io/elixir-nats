@@ -1,5 +1,5 @@
 # An Elixir framework for [NATS](https://nats.io/)
-[![Build Status](https://travis-ci.com/nats-io/elixir-nats.svg?token=1fr9zyyTUsvtF9yMNgaJ&branch=master)](https://travis-ci.com/nats-io/elixir-nats)
+[![Build Status](https://travis-ci.org/nats-io/elixir-nats.svg?branch=master)](https://travis-ci.org/nats-io/elixir-nats)
 [![Coverage Status](https://coveralls.io/repos/nats-io/elixir-nats/badge.svg?branch=master&service=github)](https://coveralls.io/github/nats-io/elixir-nats?branch=master)
 
 _Elixir style_ documentation is located [here](doc/index.html)
@@ -30,20 +30,19 @@ $ mix run examples/pub.exs
 $ mix bench --duration 30
 ```
 
-## TODO
+## Status
 
-Application, environment configuration in examples. Monitor/supervisor integration.
+Most NATS related capabilities are in place: publishing, subscribing, tls,
+authorization.
 
-Documentation, for now:
+Elixir Application, supervisor/monitor and environment support needs improved
+
+Documentation is minimal. For now:
 ```sh
 $ mix docs
 $ open docs/index.html
 $ cat examples/*.exs # ;-)
 ```
-
-Coveralls integration/cleanup
-
-Cleanup and profiling (very little done). This code was put together quickly to get it running.
 
 ## [License](LICENSE)
 
