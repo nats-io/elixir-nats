@@ -1,6 +1,6 @@
 # An Elixir framework for [NATS](https://nats.io/)
 [![Build Status](https://travis-ci.org/nats-io/elixir-nats.svg?branch=master)](https://travis-ci.org/nats-io/elixir-nats)
-[![Coverage Status](https://coveralls.io/repos/nats-io/elixir-nats/badge.svg?branch=master&service=github)](https://coveralls.io/github/nats-io/elixir-nats?branch=master)
+[![Coverage Status](https://coveralls.io/repos/github/nats-io/elixir-nats/badge.svg?branch=master)](https://coveralls.io/github/nats-io/elixir-nats?branch=master)
 
 _Elixir style_ documentation is located [here](doc/index.html)
 
@@ -11,7 +11,7 @@ Install Elixir
 Clone, fork or pull this repository. And then, to use (in your `mix.exs`):
 ```elixir
 defp deps do
-    [{:nats, "~> 0.1.1"}]
+    [{:nats, git: "https://github.com/nats-io/elixir-nats.git"}]
 end
 ```
 To build and test from source:
