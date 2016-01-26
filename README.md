@@ -12,24 +12,15 @@ _Elixir style_ documentation is located [here](doc/index.html)
 
 3. Have fun...
 
+
 ## TODOs
 
-0. GenTcp/Ssl hookup, finish baseline code so it works
+1. Application configuration, need to show examples per environment
 
-1. SSL
+2. Documentation
 
-2. Reconnect logic / pooling (use default erlang, needs example)
+3. Coveralls integration/cleanup
 
-3. Talk about pooling/fault tolerance approaches with team
-
-4. Wrap nats agent based upon #3 or provide out of the box configs/samples
-
-5. Documentation
-
-~~6. Travis cleanup~~
-
-7. Coveralls integration/cleanup
-
-8. Performance/profiling (none done). This code was put together quickly to get it running.
+4. Performance/profiling (none done). This code was put together quickly to get it running.
 
 ## [License](./LICENSE)
