@@ -1,26 +1,48 @@
-# Elixir NATS Framework
+# An Elixir framework for [NATS](https://nats.io/)
 [![Build Status](https://travis-ci.com/nats-io/elixir-nats.svg?token=1fr9zyyTUsvtF9yMNgaJ&branch=master)](https://travis-ci.com/nats-io/elixir-nats)
 [![Coverage Status](https://coveralls.io/repos/nats-io/elixir-nats/badge.svg?branch=master&service=github)](https://coveralls.io/github/nats-io/elixir-nats?branch=master)
 
 _Elixir style_ documentation is located [here](doc/index.html)
 
-## Overview
+## Getting Started
 
-1. Get and install Elixir for your platform
+Install Elixir
 
-2. Type: "mix deps.get; mix test; mix run examples/pub.exs"
+Clone, fork or pull this repository. And then, to use (in your `mix.exs`):
+```elixir
+defp deps do
+    [{:nats, "~> 0.1.1"}]
+end
+```
+To build and test from source:
 
-3. Have fun...
+```sh
+$ mix deps.get
+$ mix compile
+$ mix test --cover
+```
 
+If that succeeds, then you can run the examples (ensure _gnatsd_ is started on port 4222):
+
+```sh
+$ mix run examples/sub.exs
+$ mix run examples/pub.exs
+$ mix bench --duration 30
+```
 
 ## TODOs
 
-1. Application configuration, need to show examples per environment
+Application, environment configuration in examples. Monitor/supervisor integration.
 
-2. Documentation
+Documentation, for now:
+```sh
+$ mix docs
+$ open docs/index.html
+$ cat examples/*.exs ;-)
+```
 
-3. Coveralls integration/cleanup
+Coveralls integration/cleanup
 
-4. Performance/profiling (none done). This code was put together quickly to get it running.
+Cleanup and profiling (very little done). This code was put together quickly to get it running.
 
 ## [License](./LICENSE)
