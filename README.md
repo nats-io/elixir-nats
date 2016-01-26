@@ -30,7 +30,7 @@ $ mix run examples/pub.exs
 $ mix bench --duration 30
 ```
 
-## TODOs
+## TODO
 
 Application, environment configuration in examples. Monitor/supervisor integration.
 
@@ -45,4 +45,6 @@ Coveralls integration/cleanup
 
 Cleanup and profiling (very little done). This code was put together quickly to get it running.
 
-## Copyright 2016 Apcera Inc. All rights reserved. [License](LICENSE)
+## [License](LICENSE)
+
+Copyright 2016 Apcera Inc. All rights reserved. 
