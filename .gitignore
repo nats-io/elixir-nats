@@ -9,6 +9,7 @@ erl_crash.dump
 /bench/snapshots
 # generated docs/binaries
 /doc
+/rel
 /ebin
 # OSX
 .DS_Store

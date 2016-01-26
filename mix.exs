@@ -1,25 +1,30 @@
 defmodule Nats.Mixfile do
   use Mix.Project
 
+  @name "Nats"
   @git_url "https://github.com/nats-io/elixir-nats"
-  @version "0.1.2"
+  @home_url @git_url
+  @description "NATS framework for Elixir"
+  
+  @version "0.1.3"
 
   def project do
     [app: :nats,
      version: @version,
      elixir: "~> 1.2",
-     name: "nats",
-     source_url: @git_url,
-     homepage_url: @git_url,
-     deps: deps,
+     description: @description,
      package: package,
-     description: "NATS framework for Elixir",
-
-		 test_coverage: [tool: ExCoveralls],
+     source_url: @git_url,
+     homepage_url: @home_url,
+     deps: deps,
+     name: @name,
+     test_coverage: [tool: ExCoveralls],
      preferred_cli_env: ["coveralls": :test, "coveralls.detail":
-												 :test, "coveralls.post": :test],
-     docs: [readme: "README.md", main: "README",
-            source_ref: "v#{@version}", source_url: @git_url]]
+                         :test, "coveralls.post": :test],
+     docs: []]
+    # main: "README", extras: ["README.md"]]]
+#            #source_ref: "v#{@version}",
+#            source_url: "./"]]
   end
 
 
@@ -29,16 +34,18 @@ defmodule Nats.Mixfile do
 
   # Dependencies
   defp deps do
-    [{:excoveralls, "~> 0.4", only: :test},
-     {:benchfella, "~> 0.3.0", only: :dev},
-     {:earmark, "~> 0.1", only: :dev},
-     {:ex_doc, "~> 0.7", only: :dev}]
+    [{:exrm, "~> 0.18.8"},
+     {:excoveralls, "~> 0.4.5", only: :test},
+     {:benchfella, "~> 0.3.1", only: :dev},
+     {:earmark, "~> 0.2.1", only: :dev},
+     {:ex_doc, "~> 0.11.4", only: :dev}]
   end
 
   defp package do
     [maintainers: ["nats-io", "Apcera"],
      licenses: ["MIT"],
      links: %{"GitHub" => @git_url,
-						  "Nats.io" => "https://nats.io/"}]
+              "nats.io" => "https://nats.io/"},
+     files: ~w(lib src/*.xrl src/*.yrl mix.exs *.md LICENSE)]
   end
 end
