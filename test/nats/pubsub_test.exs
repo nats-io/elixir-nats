@@ -9,9 +9,9 @@ defmodule Nats.PubsubTest do
   def receive_loop(pid, inactivityCount) do
     receive do
       _w ->
-        # IO.puts("received NATS message: #{inspect(_w)}")
+#        IO.puts("received NATS message: #{inspect(_w)}")
         true
-    after 3_000 ->
+    after 200 ->
         inactivityCount = inactivityCount - 1
     end
     receive_loop(pid, inactivityCount)
@@ -21,7 +21,7 @@ defmodule Nats.PubsubTest do
   test "Open and test a connection..." do
     subject = ">"
     {:ok, pid} = Client.start_link
-    Client.subscribe(pid, subject);
+    Client.subscribe(pid, self(), subject);
     receive_loop(pid)
   end
 end

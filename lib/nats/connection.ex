@@ -10,9 +10,8 @@ defmodule Nats.Connection do
                  ps: nil,
                  log_header: nil}
 
-  defp format(x) when is_binary(x) do x end
-  defp format(x) when is_list(x) do Enum.join(Enum.map(x, &(format(&1))),
-                                                  " ") end
+  defp format(x) when is_binary(x), do: x
+  defp format(x) when is_list(x), do: Enum.join(Enum.map(x, &(format(&1))), " ")
   defp format(x), do: inspect(x)
   defp log(level, state, what) do
     Logger.log level, fn ->
@@ -43,7 +42,7 @@ defmodule Nats.Connection do
     port = opts.port
     hpstr = "#{host}:#{port}"
     info_log state, "connecting to #{hpstr}..."
-    case :gen_tcp.connect(host, port,
+    case :gen_tcp.connect(to_char_list(host), port,
                           opts.socket_opts,
                           opts.timeout) do
       {:ok, connected} ->
@@ -60,23 +59,23 @@ defmodule Nats.Connection do
     end
   end
 
-  def ping(self) do send self, {:command, {:ping}}; :ok end
-  def pong(self) do send self, {:command, {:pong}}; :ok end
-  def ok(self) do send self, {:command, {:ok}}; :ok end
-  def info(self, map) do send self, {:command, {:info, map}}; :ok end
-  def connect(self, map) do send self, {:command, {:connect, map}}; :ok end
-  def error(self, msg) do send self, {:command, {:err, msg}}; :ok end
-  def subscribe(self, subject) do subscribe(self, subject, nil, subject) end
-  def subscribe(self, subject, sid) do subscribe(self, subject, nil, sid) end
+  def ping(self), do: (send self, {:command, {:ping}}; :ok)
+  def pong(self), do: (send self, {:command, {:pong}}; :ok)
+  def ok(self), do: (send self, {:command, {:ok}}; :ok)
+  def info(self, map), do: (send self, {:command, {:info, map}}; :ok)
+  def connect(self, map), do: (send self, {:command, {:connect, map}}; :ok)
+  def error(self, msg), do: (send self, {:command, {:err, msg}}; :ok)
+  def subscribe(self, subject), do: subscribe(self, subject, nil, subject)
+  def subscribe(self, subject, sid), do: subscribe(self, subject, nil, sid)
   def subscribe(self, subject, queue, sid) do
     send self, {:command, {:sub, subject, queue, sid}}
   end
-  def pub(self, subject, what) do pub(self, subject, nil, what) end
+  def pub(self, subject, what), do: pub(self, subject, nil, what)
   def pub(self, subject, reply, what) do
     send self, {:command, {:pub, subject, reply, what}}
   end
-  def msg(self, subject, what) do msg(self, subject, subject, what) end
-  def msg(self, subject, sid, what) do msg(self, subject, sid, nil, what) end
+  def msg(self, subject, what), do: msg(self, subject, subject, what)
+  def msg(self, subject, sid, what), do: msg(self, subject, sid, nil, what)
   def msg(self, subject, sid, reply_queue, what) do
     send self, {:command, {:msg, subject, sid, reply_queue, what}}
   end
@@ -84,29 +83,23 @@ defmodule Nats.Connection do
     pack = Nats.Parser.encode(cmd)
     debug_log state, ["sending", pack]
     case state.send_fn.(state.sock, pack) do
-      :ok ->
-        debug_log state, ["sent", pack]
+      :ok -> debug_log state, ["sent", pack]
       {:error, :closed} -> err_log state, "socket closed"
       oops -> err_log state, ["unexpected send result", oops]
     end
     {:noreply, state}
   end
-  def handle_info({:tcp_closed, _sock}, state) do
-    nats_err(state, "connection closed")
-#    { :noreply, %{ state }
-  end
-  def handle_info({:ssl_closed, _sock}, state) do
-    nats_err(state, "connection closed")
-#    { :noreply, %{ state }
-  end
-  def handle_info({:tcp_error, _sock, reason}, state) do
-    nats_err(state, "tcp transport error #{inspect(reason)}")
-    { :noreply, state }
-  end
-  def handle_info({:tcp_passive, _sock}, state) do { :noreply, state } end
-  def handle_info({:tcp, _sock, data}, state) do handle_packet(state, data) end
-  def handle_info({:ssl, _sock, data}, state) do handle_packet(state, data) end
-  defp handle_packet(state, <<>>) do {:noreply, state} end
+  def handle_info({:tcp_closed, _sock}, state),
+    do: nats_err(state, "connection closed")
+  def handle_info({:ssl_closed, _sock}, state),
+    do: nats_err(state, "connection closed")
+  def handle_info({:tcp_error, _sock, reason},
+                  state),
+    do: nats_err(state, "tcp transport error #{inspect(reason)}")
+  def handle_info({:tcp_passive, _sock}, state), do: { :noreply, state }
+  def handle_info({:tcp, _sock, data}, state), do: handle_packet(state, data)
+  def handle_info({:ssl, _sock, data}, state), do: handle_packet(state, data)
+  defp handle_packet(state, <<>>), do: {:noreply, state}
   defp handle_packet(state, packet) do
     debug_log state, ["received packet", packet]
     pres = Nats.Parser.parse(state.ps, packet)
@@ -167,7 +160,7 @@ defmodule Nats.Connection do
           state = %{state | sock: port, send_fn: &:ssl.send/2}
         end
         debug_log state, "completing handshake"
-        connect(self(), to_send)
+        handle_info({:command, {:info, to_send}}, state)
         debug_log state, "handshake completed"
         send state.worker, {:connected, self()}
         {:noreply, %{state | state: :connected}}
@@ -178,6 +171,7 @@ defmodule Nats.Connection do
     info_log state, ["received INFO after handshake", json]
     {:noreply, state}
   end
+  # For server capabilities ;-)
   defp nats_connect(state = %{state: :want_connect}, _json) do
     debug_log state, "received connect; transitioning to connected"
     {:noreply, %{state | state: :connected}}
@@ -187,30 +181,21 @@ defmodule Nats.Connection do
     {:noreply, state}
   end
   defp nats_ping(state) do
-    pong(self())
-    {:noreply, state}
+    handle_info({:command, {:pong}}, state)
   end
   defp nats_pong(state) do
     {:noreply, state}
   end
   defp nats_ok(state) do
-    {:noreply,state}
+    {:noreply, state}
   end
   defp nats_msg(state = %{state: :connected}, sub, sid, ret, body) do
-    debug_log state, ["MSG sub", sub, sid, ret, body]
+    debug_log state, ["received MSG", sub, sid, ret, body]
     send state.worker, {:msg, sub, sid, ret, body}
     {:noreply, state}
   end
-  defp nats_msg(state, _sub, _sid, _ret, _what) do
-    err_log state, ["received MSG before handshake"]
-    {:noreply, state}
-  end
   defp nats_pub(state = %{state: :connected}, sub, ret, body) do
-    debug_log state, ["received PUB: sub", sub, ret, body]
-    {:noreply, state}
-  end
-  defp nats_pub(state, _sub, _ret, _what) do
-    err_log state, "received PUB before handshake"
+    debug_log state, ["received PUB", sub, ret, body]
     {:noreply, state}
   end
 end

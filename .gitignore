@@ -4,9 +4,9 @@ erl_crash.dump
 *.ez
 *.exs~
 *.ex~
-# Benchstuff
-/bench/graphs
-/bench/snapshots
+# Benchstuff, keep now
+#/bench/graphs
+#/bench/snapshots
 # generated docs/binaries
 /doc
 /rel

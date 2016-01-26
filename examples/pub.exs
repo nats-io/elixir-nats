@@ -17,4 +17,5 @@ msg = "hello NATS world"
 IO.puts "starting NATS nats link..."
 {:ok, pid} = Client.start_link
 Pub.pub_loop(pid, subject, msg, 10)
+receive do after 200 -> true end
 IO.puts "exiting..."
