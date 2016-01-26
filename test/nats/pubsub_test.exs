@@ -11,7 +11,7 @@ defmodule Nats.PubsubTest do
       _w ->
 #        IO.puts("received NATS message: #{inspect(_w)}")
         true
-    after 100 ->
+    after 200 ->
         inactivityCount = inactivityCount - 1
     end
     receive_loop(pid, inactivityCount)

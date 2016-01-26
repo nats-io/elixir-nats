@@ -29,7 +29,7 @@ defmodule ClientBench do
   # trickery with macros...
   Enum.each(@mesg_sizes, fn size -> 
     @msg_size size
-    bench "pub test size #{size}", [size: @msg_size] do
+    bench "PUB #{size} TEST", [size: @msg_size] do
       m = elem(bench_context, 2)[size]
       Client.pub(elem(bench_context, 0),
                  elem(bench_context, 1),
