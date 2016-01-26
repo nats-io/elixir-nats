@@ -21,7 +21,7 @@ defmodule Nats.PubsubTest do
   test "Open and test a connection..." do
     subject = ">"
     {:ok, pid} = Client.start_link
-    Client.subscribe(pid, subject);
+    Client.subscribe(pid, self(), subject);
     receive_loop(pid)
   end
 end

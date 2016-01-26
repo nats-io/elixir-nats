@@ -7,7 +7,7 @@ defmodule ClientBench do
   
   @mesg_sizes [0, 16, 32, 64, 128, 256, 512, 1024, 4096, 8192]
   
-  before_each_bench _ do
+  setup_all do
     subject = "subject"
     {:ok, conn} = Client.start_link
     mesgs_by_size =
@@ -15,7 +15,7 @@ defmodule ClientBench do
         fn x, acc -> Map.put(acc, x, make_mesg(x)) end)
     {:ok, {conn, subject, mesgs_by_size}}
   end
-
+  
   # make a message of the given size...
   defp make_mesg(size) do
     template = "Hello NATS world!"
