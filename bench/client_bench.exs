@@ -1,3 +1,5 @@
+# Copyright 2016 Apcera Inc. All rights reserved.
+
 defmodule ClientBench do
   use Benchfella
   alias Nats.Client

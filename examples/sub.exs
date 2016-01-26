@@ -1,3 +1,4 @@
+# Copyright 2016 Apcera Inc. All rights reserved.
 alias Nats.Client
 
 defmodule Sub do

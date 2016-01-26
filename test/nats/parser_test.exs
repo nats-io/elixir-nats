@@ -1,3 +1,4 @@
+# Copyright 2016 Apcera Inc. All rights reserved.
 # this is somewhat generated. don't touch.
 defmodule Nats.ParserTest do
   use ExUnit.Case, async: true

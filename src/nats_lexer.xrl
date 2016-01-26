@@ -1,4 +1,6 @@
-%% Copyright (c) 2016 Apcera Inc.
+%%
+%% Copyright 2016 Apcera Inc. All rights reserved.
+%%
 %% NATS Protocol Lexer
 %%
 %% See PROTOCOL.md

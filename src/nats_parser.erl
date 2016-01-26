@@ -1,6 +1,6 @@
 -module(nats_parser).
 -export([parse/1, parse_and_scan/1, format_error/1]).
--file("src/nats_parser.yrl", 43).
+-file("src/nats_parser.yrl", 45).
 
 extract({_Tok, _Line, Val}) -> Val;
 extract({_Tok, Val}) -> Val.
@@ -467,7 +467,7 @@ yeccgoto_nats_verb(0, Cat, Ss, Stack, T, Ts, Tzr) ->
  yeccpars2_1(1, Cat, Ss, Stack, T, Ts, Tzr).
 
 -compile({inline,yeccpars2_2_/1}).
--file("src/nats_parser.yrl", 11).
+-file("src/nats_parser.yrl", 13).
 yeccpars2_2_(__Stack0) ->
  [__1 | __Stack] = __Stack0,
  [begin
@@ -475,7 +475,7 @@ yeccpars2_2_(__Stack0) ->
   end | __Stack].
 
 -compile({inline,yeccpars2_3_/1}).
--file("src/nats_parser.yrl", 10).
+-file("src/nats_parser.yrl", 12).
 yeccpars2_3_(__Stack0) ->
  [__1 | __Stack] = __Stack0,
  [begin
@@ -483,7 +483,7 @@ yeccpars2_3_(__Stack0) ->
   end | __Stack].
 
 -compile({inline,yeccpars2_4_/1}).
--file("src/nats_parser.yrl", 12).
+-file("src/nats_parser.yrl", 14).
 yeccpars2_4_(__Stack0) ->
  [__1 | __Stack] = __Stack0,
  [begin
@@ -491,7 +491,7 @@ yeccpars2_4_(__Stack0) ->
   end | __Stack].
 
 -compile({inline,yeccpars2_6_/1}).
--file("src/nats_parser.yrl", 7).
+-file("src/nats_parser.yrl", 9).
 yeccpars2_6_(__Stack0) ->
  [__1 | __Stack] = __Stack0,
  [begin
@@ -499,7 +499,7 @@ yeccpars2_6_(__Stack0) ->
   end | __Stack].
 
 -compile({inline,yeccpars2_7_/1}).
--file("src/nats_parser.yrl", 8).
+-file("src/nats_parser.yrl", 10).
 yeccpars2_7_(__Stack0) ->
  [__1 | __Stack] = __Stack0,
  [begin
@@ -507,7 +507,7 @@ yeccpars2_7_(__Stack0) ->
   end | __Stack].
 
 -compile({inline,yeccpars2_8_/1}).
--file("src/nats_parser.yrl", 9).
+-file("src/nats_parser.yrl", 11).
 yeccpars2_8_(__Stack0) ->
  [__1 | __Stack] = __Stack0,
  [begin
@@ -515,7 +515,7 @@ yeccpars2_8_(__Stack0) ->
   end | __Stack].
 
 -compile({inline,yeccpars2_13_/1}).
--file("src/nats_parser.yrl", 36).
+-file("src/nats_parser.yrl", 38).
 yeccpars2_13_(__Stack0) ->
  [__3,__2,__1 | __Stack] = __Stack0,
  [begin
@@ -523,7 +523,7 @@ yeccpars2_13_(__Stack0) ->
   end | __Stack].
 
 -compile({inline,yeccpars2_15_/1}).
--file("src/nats_parser.yrl", 37).
+-file("src/nats_parser.yrl", 39).
 yeccpars2_15_(__Stack0) ->
  [__4,__3,__2,__1 | __Stack] = __Stack0,
  [begin
@@ -531,7 +531,7 @@ yeccpars2_15_(__Stack0) ->
   end | __Stack].
 
 -compile({inline,yeccpars2_19_/1}).
--file("src/nats_parser.yrl", 33).
+-file("src/nats_parser.yrl", 35).
 yeccpars2_19_(__Stack0) ->
  [__4,__3,__2,__1 | __Stack] = __Stack0,
  [begin
@@ -539,7 +539,7 @@ yeccpars2_19_(__Stack0) ->
   end | __Stack].
 
 -compile({inline,yeccpars2_20_/1}).
--file("src/nats_parser.yrl", 35).
+-file("src/nats_parser.yrl", 37).
 yeccpars2_20_(__Stack0) ->
  [__5,__4,__3,__2,__1 | __Stack] = __Stack0,
  [begin
@@ -547,7 +547,7 @@ yeccpars2_20_(__Stack0) ->
   end | __Stack].
 
 -compile({inline,yeccpars2_24_/1}).
--file("src/nats_parser.yrl", 26).
+-file("src/nats_parser.yrl", 28).
 yeccpars2_24_(__Stack0) ->
  [__4,__3,__2,__1 | __Stack] = __Stack0,
  [begin
@@ -558,7 +558,7 @@ yeccpars2_24_(__Stack0) ->
   end | __Stack].
 
 -compile({inline,yeccpars2_26_/1}).
--file("src/nats_parser.yrl", 31).
+-file("src/nats_parser.yrl", 33).
 yeccpars2_26_(__Stack0) ->
  [__5,__4,__3,__2,__1 | __Stack] = __Stack0,
  [begin
@@ -566,7 +566,7 @@ yeccpars2_26_(__Stack0) ->
   end | __Stack].
 
 -compile({inline,yeccpars2_31_/1}).
--file("src/nats_parser.yrl", 20).
+-file("src/nats_parser.yrl", 22).
 yeccpars2_31_(__Stack0) ->
  [__5,__4,__3,__2,__1 | __Stack] = __Stack0,
  [begin
@@ -578,7 +578,7 @@ yeccpars2_31_(__Stack0) ->
   end | __Stack].
 
 -compile({inline,yeccpars2_33_/1}).
--file("src/nats_parser.yrl", 14).
+-file("src/nats_parser.yrl", 16).
 yeccpars2_33_(__Stack0) ->
  [__6,__5,__4,__3,__2,__1 | __Stack] = __Stack0,
  [begin
@@ -590,4 +590,4 @@ yeccpars2_33_(__Stack0) ->
   end | __Stack].
 
 
--file("src/nats_parser.yrl", 47).
+-file("src/nats_parser.yrl", 49).

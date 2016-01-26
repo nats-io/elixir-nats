@@ -1,4 +1,6 @@
-% LICENSE, etc,,
+%%
+%% Copyright 2016 Apcera Inc. All rights reserved.
+%%
 
 Nonterminals
 json_object json_members json_pair json_value json_array json_elements.

@@ -1,3 +1,4 @@
+# Copyright 2016 Apcera Inc. All rights reserved.
 defmodule Nats.Connection do
   use GenServer
   require Logger
@@ -59,35 +60,25 @@ defmodule Nats.Connection do
     end
   end
 
-  def ping(self), do: (send self, {:command, {:ping}}; :ok)
-  def pong(self), do: (send self, {:command, {:pong}}; :ok)
-  def ok(self), do: (send self, {:command, {:ok}}; :ok)
-  def info(self, map), do: (send self, {:command, {:info, map}}; :ok)
-  def connect(self, map), do: (send self, {:command, {:connect, map}}; :ok)
-  def error(self, msg), do: (send self, {:command, {:err, msg}}; :ok)
+  def ping(self), do: (send self, {:ping}; :ok)
+  def pong(self), do: (send self, {:pong}; :ok)
+  def ok(self), do: (send self, {:ok}; :ok)
+  def info(self, map), do: (send self, {:info, map}; :ok)
+  def connect(self, map), do: (send self, {:connect, map}; :ok)
+  def error(self, msg), do: (send self, {:err, msg}; :ok)
   def subscribe(self, subject), do: subscribe(self, subject, nil, subject)
   def subscribe(self, subject, sid), do: subscribe(self, subject, nil, sid)
   def subscribe(self, subject, queue, sid) do
-    send self, {:command, {:sub, subject, queue, sid}}
+    send self, {:sub, subject, queue, sid}
   end
   def pub(self, subject, what), do: pub(self, subject, nil, what)
   def pub(self, subject, reply, what) do
-    send self, {:command, {:pub, subject, reply, what}}
+    send self, {:pub, subject, reply, what}
   end
   def msg(self, subject, what), do: msg(self, subject, subject, what)
   def msg(self, subject, sid, what), do: msg(self, subject, sid, nil, what)
   def msg(self, subject, sid, reply_queue, what) do
-    send self, {:command, {:msg, subject, sid, reply_queue, what}}
-  end
-  def handle_info({:command, cmd}, state) do
-    pack = Nats.Parser.encode(cmd)
-    debug_log state, ["sending", pack]
-    case state.send_fn.(state.sock, pack) do
-      :ok -> debug_log state, ["sent", pack]
-      {:error, :closed} -> err_log state, "socket closed"
-      oops -> err_log state, ["unexpected send result", oops]
-    end
-    {:noreply, state}
+    send self, {:msg, subject, sid, reply_queue, what}
   end
   def handle_info({:tcp_closed, _sock}, state),
     do: nats_err(state, "connection closed")
@@ -99,6 +90,17 @@ defmodule Nats.Connection do
   def handle_info({:tcp_passive, _sock}, state), do: { :noreply, state }
   def handle_info({:tcp, _sock, data}, state), do: handle_packet(state, data)
   def handle_info({:ssl, _sock, data}, state), do: handle_packet(state, data)
+  def handle_info(cmd, state) do
+#    IO.puts "cmd -> #{inspect(cmd)}"
+    pack = Nats.Parser.encode(cmd)
+    debug_log state, ["sending", pack]
+    case state.send_fn.(state.sock, pack) do
+      :ok -> debug_log state, ["sent", pack]
+      {:error, :closed} -> err_log state, "socket closed"
+      oops -> err_log state, ["unexpected send result", oops]
+    end
+    {:noreply, state}
+  end
   defp handle_packet(state, <<>>), do: {:noreply, state}
   defp handle_packet(state, packet) do
     debug_log state, ["received packet", packet]
@@ -160,7 +162,7 @@ defmodule Nats.Connection do
           state = %{state | sock: port, send_fn: &:ssl.send/2}
         end
         debug_log state, "completing handshake"
-        handle_info({:command, {:info, to_send}}, state)
+        handle_info({:info, to_send}, state)
         debug_log state, "handshake completed"
         send state.worker, {:connected, self()}
         {:noreply, %{state | state: :connected}}
@@ -181,7 +183,7 @@ defmodule Nats.Connection do
     {:noreply, state}
   end
   defp nats_ping(state) do
-    handle_info({:command, {:pong}}, state)
+    handle_info({:pong}, state)
   end
   defp nats_pong(state) do
     {:noreply, state}

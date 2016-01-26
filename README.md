@@ -38,11 +38,11 @@ Documentation, for now:
 ```sh
 $ mix docs
 $ open docs/index.html
-$ cat examples/*.exs ;-)
+$ cat examples/*.exs # ;-)
 ```
 
 Coveralls integration/cleanup
 
 Cleanup and profiling (very little done). This code was put together quickly to get it running.
 
-## [License](./LICENSE)
+## Copyright 2016 Apcera Inc. All rights reserved. [License](LICENSE)

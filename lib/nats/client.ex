@@ -1,3 +1,4 @@
+# Copyright 2016 Apcera Inc. All rights reserved.
 defmodule Nats.Client do
   use GenServer
   require Logger
@@ -42,7 +43,7 @@ defmodule Nats.Client do
     if pid, do: send pid, {:msg, subject, reply, what}
     {:noreply, state}
   end
-  def handle_info(what, state) do
+  def handle_info(_what, state) do
 #    IO.puts "handle_info #{inspect(what)}"
     {:noreply, state}
   end
@@ -68,14 +69,14 @@ defmodule Nats.Client do
                 subs_by_sid: subs_by_sid,
                 subs_by_pid: subs_by_pid,
                 next_sid: next_sid + 1}
-      send state.conn, {:command, {:sub, subject, queue, sid}}
+      send state.conn, {:sub, subject, queue, sid}
 #      IO.puts "subscribed!! #{inspect(state)}" 
       {:reply, :ok, state}
     end
   end
   def handle_call(request, _from, state) do
 #    IO.puts "handle_call #{inspect(request)}"
-    send state.conn, {:command, request}
+    send state.conn, request
     {:reply, :ok, state}
   end
  
