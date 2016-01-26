@@ -1,4 +1,6 @@
-% LICENSE, etc,,
+%%
+%% Copyright 2016 Apcera Inc. All rights reserved.
+%%
 
 Nonterminals
 nats_verb.

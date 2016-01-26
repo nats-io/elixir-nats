@@ -1,3 +1,4 @@
+# Copyright 2016 Apcera Inc. All rights reserved.
 defmodule Nats.Parser do
 
   @default_state %{ps: :verb, lexs: [], msg: nil, size: nil, verb: nil}

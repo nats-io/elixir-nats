@@ -1,3 +1,4 @@
+# Copyright 2016 Apcera Inc. All rights reserved.
 defmodule Nats.Mixfile do
   use Mix.Project
 
@@ -36,7 +37,7 @@ defmodule Nats.Mixfile do
   defp deps do
     [{:exrm, "~> 0.18.8"},
      {:excoveralls, "~> 0.4.5", only: :test},
-     {:benchfella, "~> 0.3.1", only: :dev},
+     {:benchfella, "~> 0.3.1"},# #, only: :dev},
      {:earmark, "~> 0.2.1", only: :dev},
      {:ex_doc, "~> 0.11.4", only: :dev}]
   end

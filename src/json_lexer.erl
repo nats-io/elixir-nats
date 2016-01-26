@@ -12,7 +12,7 @@
 -export([format_error/1]).
 
 %% User code. This is placed here to allow extra attributes.
--file("src/json_lexer.xrl", 29).
+-file("src/json_lexer.xrl", 32).
 
 -file("/usr/local/Cellar/erlang/18.2.1/lib/erlang/lib/parsetools-2.1.1/include/leexinc.hrl", 14).
 
@@ -523,45 +523,45 @@ yyaction(7, _, _, _) ->
 yyaction(_, _, _, _) -> error.
 
 -compile({inline,yyaction_0/1}).
--file("src/json_lexer.xrl", 15).
+-file("src/json_lexer.xrl", 18).
 yyaction_0(TokenLine) ->
      { token, { json_true, TokenLine } } .
 
 -compile({inline,yyaction_1/1}).
--file("src/json_lexer.xrl", 16).
+-file("src/json_lexer.xrl", 19).
 yyaction_1(TokenLine) ->
      { token, { json_false, TokenLine } } .
 
 -compile({inline,yyaction_2/1}).
--file("src/json_lexer.xrl", 17).
+-file("src/json_lexer.xrl", 20).
 yyaction_2(TokenLine) ->
      { token, { json_null, TokenLine } } .
 
 -compile({inline,yyaction_3/2}).
--file("src/json_lexer.xrl", 18).
+-file("src/json_lexer.xrl", 21).
 yyaction_3(TokenChars, TokenLine) ->
      { token, { list_to_atom (TokenChars), TokenLine } } .
 
 -compile({inline,yyaction_4/3}).
--file("src/json_lexer.xrl", 19).
+-file("src/json_lexer.xrl", 22).
 yyaction_4(TokenChars, TokenLen, TokenLine) ->
      { token, { json_string, TokenLine,
      lists : sublist (TokenChars, 2, TokenLen - 2) } } .
 
 -compile({inline,yyaction_5/2}).
--file("src/json_lexer.xrl", 21).
+-file("src/json_lexer.xrl", 24).
 yyaction_5(TokenChars, TokenLine) ->
      { token, { json_number, TokenLine,
      list_to_integer (TokenChars) } } .
 
 -compile({inline,yyaction_6/2}).
--file("src/json_lexer.xrl", 23).
+-file("src/json_lexer.xrl", 26).
 yyaction_6(TokenChars, TokenLine) ->
      { token, { json_number, TokenLine,
      list_to_float (TokenChars) } } .
 
 -compile({inline,yyaction_7/0}).
--file("src/json_lexer.xrl", 25).
+-file("src/json_lexer.xrl", 28).
 yyaction_7() ->
      skip_token .
 

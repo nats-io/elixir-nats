@@ -1,3 +1,4 @@
+# Copyright 2016 Apcera Inc. All rights reserved.
 defmodule Nats.ConnectionTest do
   use ExUnit.Case, async: true
   alias Nats.Connection

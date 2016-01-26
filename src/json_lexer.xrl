@@ -1,3 +1,6 @@
+%%
+%% Copyright 2016 Apcera Inc. All rights reserved.
+%%
 %% JSON lexer
 %%
 %% See http://www.json.org/

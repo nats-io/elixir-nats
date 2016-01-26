@@ -1,3 +1,4 @@
+# Copyright 2016 Apcera Inc. All rights reserved.
 before_install:
   - export GOPATH=$HOME/gopath
   - export PATH=$PATH:$GOPATH/bin
