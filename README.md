@@ -6,28 +6,47 @@ _Elixir style_ documentation is located [here](doc/index.html)
 
 ## Getting Started
 
+
 Install Elixir
 
-Clone, fork or pull this repository. And then, to use (in your `mix.exs`):
+To use the framework in your project, add the following to your `mix.exs`:
+
 ```elixir
 defp deps do
     [{:nats, git: "https://github.com/nats-io/elixir-nats.git"}]
 end
 ```
-To build and test from source:
+
+## To build and/or test from sources
+
+Clone, fork or pull this repository. And then:
 
 ```sh
 $ mix deps.get
 $ mix compile
-$ mix test --cover
+$ mix test
 ```
 
-If that succeeds, then you can run the examples (ensure _gnatsd_ is started on port 4222):
+To run the examples:
 
 ```sh
 $ mix run examples/sub.exs
 $ mix run examples/pub.exs
 $ mix bench --duration 30
+```
+
+The default NATS configuration looks for a [gnatsd](https://github.com/nats-io/gnatsd) instance running on the default port of 4222 on your local host.
+
+You can override the configuration by passing a map to `Client.start_link`. For example:
+
+```elixir
+  alias Nats.Client
+  
+  nats_conf = %{host: "some-host", port: 3222,
+                tls_required: true,
+                auth: %{ user: "some-user", pass: "some-pass"}}
+  {:ok, ref} = Client.start_link(nats_conf)
+  Client.pub(ref, "subject", "hello NATS world!")
 ```
 
 ## Status
@@ -38,6 +57,7 @@ authorization.
 Elixir Application, supervisor/monitor and environment support needs improved
 
 Documentation is minimal. For now:
+
 ```sh
 $ mix docs
 $ open docs/index.html
