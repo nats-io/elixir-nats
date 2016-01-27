@@ -1,8 +1,8 @@
 # Copyright 2016 Apcera Inc. All rights reserved.
-#before_install:
-#  - export GOPATH=$HOME/gopath
-#  - export PATH=$PATH:$GOPATH/bin
-#  - go get github.com/nats-io/gnatsd
+before_install:
+  - export GOPATH=$HOME/gopath
+  - export PATH=$PATH:$GOPATH/bin
+  - go get github.com/nats-io/gnatsd
 language: elixir
 otp_release:
   - 18.0
@@ -10,4 +10,6 @@ elixir:
   - 1.2.0
 sudo: false
 script:
+  - gnatsd < /dev/null > /dev/null 2>&1 &
+  - sleep 2
   - "MIX_ENV=test mix do deps.get, compile, coveralls.travis"
