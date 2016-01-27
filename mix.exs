@@ -9,7 +9,7 @@ defmodule Nats.Mixfile do
   @doc_url "https://nats-io.github.com/elixir-nats/"
   @description "NATS framework for Elixir"
   
-  @version "0.1.4"
+  @version "0.1.5"
 
   def project do
     [app: :nats,
