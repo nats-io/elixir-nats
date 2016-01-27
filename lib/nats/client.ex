@@ -30,21 +30,25 @@ defmodule Nats.Client do
     parent = self()
     case Nats.Connection.start_link(parent, opts) do
       {:ok, x}  when is_pid(x) ->
-        state = %{state | conn: x, status: :connecting, opts: opts}
+        receive do
+          {:connected, ^x } ->
+            {:ok, %{state | conn: x, status: :connected, opts: opts}}
+        after opts.timeout -> {:stop, "timeout connecting to NATS"}
+        end
       other -> {:error, "unable to start connection link", other}
     end
-#    IO.puts("state -> #{inspect(state)}")
-    {:ok, state, state.opts.timeout}
   end
 
   def handle_info({:msg, subject, sid, reply, what},
-                  state = %{ subs_by_sid: subs_by_sid }) do
+                  state = %{ subs_by_sid: subs_by_sid,
+                             status: client_status})
+  when client_status != :closed do
     pid = Map.get(subs_by_sid, sid)
     if pid, do: send pid, {:msg, subject, reply, what}
     {:noreply, state}
   end
-  def handle_info(_what, state) do
-#    IO.puts "handle_info #{inspect(what)}"
+  def handle_info({:msg, _subject, _sid, _reply, _what}, state) do
+    # ignore messages we get after being closed...
     {:noreply, state}
   end
   def handle_cast(_command, state) do
@@ -52,10 +56,11 @@ defmodule Nats.Client do
     {:noreply, state}
   end
   def handle_call({:sub, who, subject, queue}, _from,
-                  state = %{ subs_by_sid: subs_by_sid,
-                             subs_by_pid: subs_by_pid,
-                             next_sid: next_sid}) do
-#    when is_string(subject) and is_string (queue) do
+                  state = %{subs_by_sid: subs_by_sid,
+                            subs_by_pid: subs_by_pid,
+                            next_sid: next_sid,
+                            status: client_status})
+  when client_status != :closed do
     m = Map.get(subs_by_pid, who, %{})
     found = Map.get(m, subject)
     if found do
@@ -73,6 +78,9 @@ defmodule Nats.Client do
 #      IO.puts "subscribed!! #{inspect(state)}" 
       {:reply, :ok, state}
     end
+  end
+  def handle_call({:sub, _who, _subject, _queue}, _from, _state) do
+    {:error, "connection closed"}
   end
   def handle_call(request, _from, state) do
 #    IO.puts "handle_call #{inspect(request)}"

@@ -49,6 +49,16 @@ You can override the configuration by passing a map to `Client.start_link`. For 
   Client.pub(ref, "subject", "hello NATS world!")
 ```
 
+The framework leverages the standard logger, by default only errors are logged. To view additional logging, update your `config/config.exs`:
+```elixir
+use Mix.Config
+
+# debug will log most everything
+# info prints connection lifecycle events
+# error prints errors ;-)
+config :logger, level: :debug
+```
+
 ## Status
 
 Most NATS related capabilities are in place: publishing, subscribing, tls,
