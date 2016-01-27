@@ -2,7 +2,7 @@
 [![Build Status](https://travis-ci.org/nats-io/elixir-nats.svg?branch=master)](https://travis-ci.org/nats-io/elixir-nats)
 [![Coverage Status](https://coveralls.io/repos/github/nats-io/elixir-nats/badge.svg?branch=master)](https://coveralls.io/github/nats-io/elixir-nats?branch=master)
 
-_Elixir style_ documentation is located [here](doc/index.html)
+_Elixir style_ documentation is located [here](https://nats-io.github.io/elixir-nats/)
 
 ## Getting Started
 
