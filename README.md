@@ -35,7 +35,7 @@ $ mix run examples/pub.exs
 $ mix bench --duration 30
 ```
 
-The default NATS configuration looks for a [gnatsd](https://github.com/nats-io/gnatsd) instance running on the default port of 4222 on your local host.
+The default NATS configuration looks for a [gnatsd](https://github.com/nats-io/gnatsd) instance running on the default port of 4222 on 127.0.0.1.
 
 You can override the configuration by passing a map to `Client.start_link`. For example:
 
