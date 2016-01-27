@@ -19,8 +19,8 @@ defmodule Nats.Client do
                   subs_by_sid: %{},
                   next_sid: 0}
 
-  def start_link(opts \\ @default_opts) do
-    GenServer.start_link(__MODULE__, opts)
+  def start_link(opts \\ %{}) do
+    GenServer.start_link(__MODULE__, Map.merge(@default_opts, opts))
   end
 
   def init(opts) do
