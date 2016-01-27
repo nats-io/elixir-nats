@@ -1,28 +1,30 @@
 # Copyright 2016 Apcera Inc. All rights reserved.
 defmodule Nats.PubsubTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
   alias Nats.Client
 
-  def receive_loop(pid) do
-    receive_loop(pid, 5)
-  end
-  def receive_loop(_, 0) do true end
-  def receive_loop(pid, inactivityCount) do
+  def receive_loop(pid, acc) do
     receive do
-      _w ->
-#        IO.puts("received NATS message: #{inspect(_w)}")
-        true
-    after 200 ->
-        inactivityCount = inactivityCount - 1
+      _w -> receive_loop(pid, acc + 1)
+    after 100 ->
+      acc
     end
-    receive_loop(pid, inactivityCount)
   end
 
   @tag disabled: true
-  test "Open and test a connection..." do
-    subject = ">"
-    {:ok, pid} = Client.start_link
-    Client.subscribe(pid, self(), subject);
-    receive_loop(pid)
+  test "Publish some messages..." do
+    subject = "TheSubject"
+    {:ok, con} = Client.start_link
+    :ok = Client.subscribe(con, self(), subject)
+    :ok = Client.subscribe(con, self(), ">")
+    Client.pub(con, subject, "1: hello")
+    Client.pub(con, subject, "2: NATS")
+    Client.pub(con, subject, "3: world")
+    Client.pub(con, subject <> subject, "4: 4")
+    Client.pub(con, subject <> subject, "5: 5")
+    Client.pub(con, subject <> subject, "6: 6")
+    # 6 messages + the three we match twice on our wildcard
+    assert 9 == receive_loop(con, 0)
+#    Client.unsub(con, sub_subject)
   end
 end

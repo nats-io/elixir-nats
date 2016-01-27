@@ -1,10 +1,14 @@
 # Copyright 2016 Apcera Inc. All rights reserved.
 defmodule Nats.ConnectionTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
   alias Nats.Connection
+
+  test "test general functions" do
+  end
 
   @tag disabled: true
   test "Open a default connection" do
+	  :erlang.process_flag(:trap_exit, true)
     opts = %{ tls_required: false,
               auth: %{}, # "user" => "user", "pass" => "pass"},
               verbose: false,
@@ -14,23 +18,35 @@ defmodule Nats.ConnectionTest do
               ssl_opts: []}
     {:ok, con } = Connection.start_link(self(), opts)
     assert :ok == Connection.ping(con)
-    Connection.ping(con)
-    Connection.pong(con)
-    Connection.ok(con)
-    Connection.error(con, "a message")
-    {:ok, con } = Connection.start_link(self(), opts)
     assert :ok == Connection.ping(con)
-    Connection.subscribe(con, ">")
-    Connection.subscribe(con, ">", "sid")
-    Connection.subscribe(con, ">", "q", "sid")
-    Connection.pub(con, "subject", "hello world")
-    Connection.pub(con, "subject", "reply", "hello nats world")
-    Connection.msg(con, "subject", "hello world nosid msg")
+    assert :ok == Connection.pong(con)
+    assert :ok == Connection.ok(con)
+
+    assert :ok == Connection.info(con, %{})
+    # reopen...
+    {:ok, con } = Connection.start_link(self(), opts)
+    
+    assert :ok == Connection.connect(con, %{})
+    # reopen...
+    {:ok, con } = Connection.start_link(self(), opts)
+    assert :ok == Connection.error(con, "a message")
+    # reopen...
+    {:ok, con } = Connection.start_link(self(), opts)
+    
+    assert :ok == Connection.ping(con)
+    assert :ok == Connection.subscribe(con, ">")
+    assert :ok == Connection.subscribe(con, ">", "sid")
+    assert :ok == Connection.subscribe(con, ">", "q", "sid")
+    assert :ok == Connection.pub(con, "subject", "hello world")
+    assert :ok == Connection.pub(con, "subject", "reply", "hello nats world")
+
+    assert :ok == Connection.msg(con, "subject", "hello world nosid msg")
+    # reopen...
+    {:ok, con } = Connection.start_link(self(), opts)
     Connection.msg(con, "subject", "sid", "hello world msg")
-    Connection.msg(con, "subject", "sid" , "reply", "hello nats world msg")
-    receive do
-      _w -> true # IO.puts("got: #{inspect(_w)}")
-    after 1000 -> :ok
-    end
+    # reopen...
+    {:ok, con } = Connection.start_link(self(), opts)
+    assert :ok == Connection.msg(con, "subject", "sid" , "reply",
+                                 "hello nats world msg")
   end
 end

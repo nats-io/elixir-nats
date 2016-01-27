@@ -71,7 +71,7 @@ Documentation is minimal. For now:
 ```sh
 $ mix docs
 $ open docs/index.html
-$ cat examples/*.exs # ;-)
+$ cat examples/*.exs
 ```
 
 ## [License](LICENSE)
