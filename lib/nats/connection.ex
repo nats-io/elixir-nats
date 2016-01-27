@@ -55,8 +55,8 @@ defmodule Nats.Connection do
         #IO.puts "connected to nats: #{inspect(state)}"
         info_log state, "connected"
         {:ok, state}
-      other ->
-        why = "error connecting to #{hpstr}: #{inspect(other)}"
+      {:error, reason} ->
+        why = "error connecting to #{hpstr}: #{reason}"
         err_log(state, why)
         {:stop, why}
     end
@@ -72,15 +72,18 @@ defmodule Nats.Connection do
   def subscribe(self, subject, sid), do: subscribe(self, subject, nil, sid)
   def subscribe(self, subject, queue, sid) do
     send self, {:sub, subject, queue, sid}
+    :ok
   end
   def pub(self, subject, what), do: pub(self, subject, nil, what)
   def pub(self, subject, reply, what) do
     send self, {:pub, subject, reply, what}
+    :ok
   end
   def msg(self, subject, what), do: msg(self, subject, subject, what)
   def msg(self, subject, sid, what), do: msg(self, subject, sid, nil, what)
   def msg(self, subject, sid, reply_queue, what) do
     send self, {:msg, subject, sid, reply_queue, what}
+    :ok
   end
   def handle_info({:tcp_closed, _sock}, state),
     do: nats_err(state, "connection closed")

@@ -22,6 +22,9 @@ defmodule Nats.Client do
   def start_link(opts \\ %{}) do
     GenServer.start_link(__MODULE__, Map.merge(@default_opts, opts))
   end
+  def start(opts \\ %{}) do
+    GenServer.start(__MODULE__, Map.merge(@default_opts, opts))
+  end
 
   def init(opts) do
 #    IO.puts "init! #{inspect(opts)}"
@@ -33,7 +36,8 @@ defmodule Nats.Client do
         receive do
           {:connected, ^x } ->
             {:ok, %{state | conn: x, status: :connected, opts: opts}}
-        after opts.timeout -> {:stop, "timeout connecting to NATS"}
+        after opts.timeout ->
+            {:stop, "timeout connecting to NATS"}
         end
       other -> {:error, "unable to start connection link", other}
     end
@@ -55,16 +59,18 @@ defmodule Nats.Client do
 #    IO.puts "handle_cast #{inspect(command)}"
     {:noreply, state}
   end
+  def handle_call(_call, _from, state = %{status: :closed}) do
+    {:reply, {:error, "connection closed"}, state}
+  end
   def handle_call({:sub, who, subject, queue}, _from,
                   state = %{subs_by_sid: subs_by_sid,
                             subs_by_pid: subs_by_pid,
-                            next_sid: next_sid,
-                            status: client_status})
-  when client_status != :closed do
+                            next_sid: next_sid}) do
     m = Map.get(subs_by_pid, who, %{})
     found = Map.get(m, subject)
     if found do
-      {:error, "#{inspect(who)} already subjscribed to #{subject}"}
+      {:reply, {:error, "already subscribed to #{subject}: #{inspect(who)}"},
+        state}
     else
       sid = "@#{next_sid}"
       m = Map.put(m, subject, sid)
@@ -79,11 +85,9 @@ defmodule Nats.Client do
       {:reply, :ok, state}
     end
   end
-  def handle_call({:sub, _who, _subject, _queue}, _from, _state) do
-    {:error, "connection closed"}
-  end
   def handle_call(request, _from, state) do
-#    IO.puts "handle_call #{inspect(request)}"
+    # IO.puts "handle_call #{inspect(request)}"
+    # assume everything else is a pass through to the IO agent process
     send state.conn, request
     {:reply, :ok, state}
   end
