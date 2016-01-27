@@ -4,10 +4,12 @@ defmodule Nats.Mixfile do
 
   @name "Nats"
   @git_url "https://github.com/nats-io/elixir-nats"
+  @nats_io_url "https://nats.io/"
   @home_url @git_url
+  @doc_url "https://nats-io.github.com/elixir-nats/"
   @description "NATS framework for Elixir"
   
-  @version "0.1.3"
+  @version "0.1.4"
 
   def project do
     [app: :nats,
@@ -21,8 +23,8 @@ defmodule Nats.Mixfile do
      name: @name,
      test_coverage: [tool: ExCoveralls],
      preferred_cli_env: ["coveralls": :test, "coveralls.detail":
-                         :test, "coveralls.post": :test],
-     docs: []]
+                         :test, "coveralls.post": :test]]
+#     docs: []]
     # main: "README", extras: ["README.md"]]]
 #            #source_ref: "v#{@version}",
 #            source_url: "./"]]
@@ -35,7 +37,7 @@ defmodule Nats.Mixfile do
 
   # Dependencies
   defp deps do
-    [{:exrm, "~> 0.18.8"},
+    [{:exrm, "~> 0.18.8", only: :dev},
      {:excoveralls, "~> 0.4.5", only: :test},
      {:benchfella, "~> 0.3.1", only: :dev},
      {:earmark, "~> 0.2.1", only: :dev},
@@ -43,10 +45,14 @@ defmodule Nats.Mixfile do
   end
 
   defp package do
-    [maintainers: ["nats-io", "Apcera"],
-     licenses: ["MIT"],
-     links: %{"GitHub" => @git_url,
-              "nats.io" => "https://nats.io/"},
-     files: ~w(lib src/*.xrl src/*.yrl mix.exs *.md LICENSE)]
+    [
+      name: "natsio",
+      files: ~w(lib src/*.xrl src/*.yrl mix.exs *.md examples LICENSE),
+      maintainers: ["camros", "nats.io", "Apcera"],
+      licenses: ["MIT"],
+      links: %{"GitHub" => @git_url,
+               "Docs" => @doc_url,
+               "Nats.io" => @nats_io_url}
+    ]
   end
 end

@@ -56,7 +56,9 @@ defmodule Nats.Connection do
         info_log state, "connected"
         {:ok, state}
       other ->
-        err_log(state, ["error connecting to #{hpstr}", other])
+        why = "error connecting to #{hpstr}: #{inspect(other)}"
+        err_log(state, why)
+        {:stop, why}
     end
   end
 
@@ -96,7 +98,7 @@ defmodule Nats.Connection do
     debug_log state, ["sending", pack]
     case state.send_fn.(state.sock, pack) do
       :ok -> debug_log state, ["sent", pack]
-      {:error, :closed} -> err_log state, "socket closed"
+      {:error, :closed} -> info_log state, "socket closed"
       oops -> err_log state, ["unexpected send result", oops]
     end
     {:noreply, state}
@@ -108,8 +110,10 @@ defmodule Nats.Connection do
     case pres do
       {:ok, msg, rest, nps} ->
         debug_log state, ["parsed packet", msg]
-        {:noreply, ns } = handle_packet1(%{state | ps: nps}, msg)
-        handle_packet(ns, rest)
+        case handle_packet1(%{state | ps: nps}, msg) do
+          {:noreply, ns } -> handle_packet(ns, rest)
+          other -> other
+        end
       other -> nats_err(state, "invalid parser result: #{inspect(other)}")
     end
   end
@@ -129,8 +133,8 @@ defmodule Nats.Connection do
   end
   defp nats_err(state, what) do
     err_log state, what
-    send state.worker, {:error, self(), what}
-    {:noreply, %{state | state: :error}}
+#    send state.worker, {:error, self(), what}
+    {:stop, "NATS err: #{inspect(what)}", %{state | state: :error}}
   end
   defp check_auth(state,
                   json_received = %{},
@@ -144,16 +148,24 @@ defmodule Nats.Connection do
       _ -> {:error, "client and server disagree on authorization"}
     end
   end
+  defp nats_info(state = %{state: :want_info, opts: %{ tls_required: we_want }},
+                 connect_json = %{ "tls_required" => server_tls })
+  when we_want != server_tls do
+    why = "server and client disagree on tls (#{server_tls} vs #{we_want})"
+    nats_err(state, [why, "INFO json", connect_json])
+  end
   defp nats_info(state = %{state: :want_info}, json) do
     # IO.puts "NATS: received INFO: #{inspect(json)}"
     connect_json = %{
-        "version" => "elixir-alpha",
-        "tls_required" => state.opts.tls_required,
-        "verbose" => state.opts.verbose,
+      "version" => "0.1.4",
+      "name" => "elixir-nats",
+      "lang" => "elixir",
+      "pedantic" => false,
+      "verbose" => state.opts.verbose,
     }
     case check_auth(state, json, connect_json, state.opts.auth) do
       {:ok, to_send} ->
-        if to_send["tls_required"] do
+        if state.opts.tls_required do
           opts = state.opts.ssl_opts
           debug_log state, ["upgrading to tls with", opts]
           res = :ssl.connect(state.sock, opts, state.opts.timeout)
@@ -162,7 +174,7 @@ defmodule Nats.Connection do
           state = %{state | sock: port, send_fn: &:ssl.send/2}
         end
         debug_log state, "completing handshake"
-        handle_info({:info, to_send}, state)
+        handle_info({:connect, to_send}, state)
         debug_log state, "handshake completed"
         send state.worker, {:connected, self()}
         {:noreply, %{state | state: :connected}}
@@ -176,7 +188,7 @@ defmodule Nats.Connection do
   # For server capabilities ;-)
   defp nats_connect(state = %{state: :want_connect}, _json) do
     debug_log state, "received connect; transitioning to connected"
-    {:noreply, %{state | state: :connected}}
+    {:noreply, %{state | state: :server_connected}}
   end
   defp nats_connect(state, json) do
     err_log state, ["received CONNECT after handshake", json]
