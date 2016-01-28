@@ -21,6 +21,8 @@ defmodule Nats.Mixfile do
      homepage_url: @home_url,
      deps: deps,
      name: @name,
+     docs: [extras: ["README.md"], main: "readme",
+            source_ref: "v#{@version}", source_url: @git_url],
      test_coverage: [tool: ExCoveralls],
      preferred_cli_env: ["coveralls": :test, "coveralls.detail":
                          :test, "coveralls.post": :test]]
@@ -41,7 +43,7 @@ defmodule Nats.Mixfile do
   defp package do
     [
       name: "natsio",
-      files: ~w(lib src/*.xrl src/*.yrl mix.exs *.md examples LICENSE),
+      files: ~w(lib src bench mix.exs LICENSE README.md),
       maintainers: ["camros", "nats.io", "Apcera"],
       licenses: ["MIT"],
       links: %{"GitHub" => @git_url,
