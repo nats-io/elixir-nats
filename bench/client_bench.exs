@@ -71,18 +71,18 @@ defmodule ClientBench do
        what: elem(bench_context, 3)[@msg_size]] do
       # ideally done once, lazy ;-)
       {:ok, ref} = Client.sub(con, self(), sub)
-      do_pubsub(con, sub, what, @num_pubsub_chunks)
+      do_pubsub(con, ref, sub, what, @num_pubsub_chunks)
       Client.unsub(con, ref)
     end
-    defp do_pubsub(_, _, _, 0), do: :ok
-    defp do_pubsub(con, sub, what, n) do
+    defp do_pubsub(_, _, _, _, 0), do: :ok
+    defp do_pubsub(con, ref, sub, what, n) do
       Client.pub(con, sub, what)
       new_n = n
       receive do
-        {:msg, ^sub, nil, ^what } -> new_n = n - 1
+        {:msg, ^ref, ^sub, nil, ^what } -> new_n = n - 1
       after 500 -> IO.puts "timeout in test..."
       end
-      do_pubsub(con, sub, what, new_n)
+      do_pubsub(con, ref, sub, what, new_n)
     end
   end)
 end

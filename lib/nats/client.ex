@@ -48,7 +48,7 @@ defmodule Nats.Client do
                              status: client_status})
   when client_status != :closed do
     pid = Map.get(subs_by_sid, sid)
-    if pid, do: send pid, {:msg, subject, reply, what}
+    if pid, do: send pid, {:msg, {sid, pid}, subject, reply, what}
     {:noreply, state}
   end
   # ignore messages we get after being closed...
