@@ -24,22 +24,16 @@ defmodule Nats.Mixfile do
      test_coverage: [tool: ExCoveralls],
      preferred_cli_env: ["coveralls": :test, "coveralls.detail":
                          :test, "coveralls.post": :test]]
-#     docs: []]
-    # main: "README", extras: ["README.md"]]]
-#            #source_ref: "v#{@version}",
-#            source_url: "./"]]
   end
-
 
   def application do
     [applications: [:logger]]
   end
 
-  # Dependencies
   defp deps do
     [{:exrm, "~> 0.18.8", only: :dev},
      {:excoveralls, "~> 0.4.5", only: :test},
-     {:benchfella, "~> 0.3.1" },#, only: :dev},
+     {:benchfella, "~> 0.3.1", only: :dev},
      {:earmark, "~> 0.2.1", only: :dev},
      {:ex_doc, "~> 0.11.4", only: :dev}]
   end
