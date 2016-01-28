@@ -49,6 +49,7 @@ defmodule Nats.Parser do
 #  {:cont, ... }
 #  """
 
+  def parse(state = %{ps: :body}, thing), do: parse_body(state, thing)
   def parse(state = %{ps: :verb, lexs: ls}, thing) do
     res = :nats_lexer.tokens(ls, to_char_list(thing))
     #IO.puts "lex got: #{inspect(nls)}"

@@ -117,6 +117,9 @@ defmodule Nats.Connection do
           {:noreply, ns } -> handle_packet(ns, rest)
           other -> other
         end
+      {:cont, howmany, nps} ->
+        debug_log state, ["partial packet", howmany]
+        {:noreply, %{state | ps: nps}}
       other -> nats_err(state, "invalid parser result: #{inspect(other)}")
     end
   end
