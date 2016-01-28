@@ -5,7 +5,7 @@ defmodule ClientBench do
   alias Nats.Client
 
   @moduledoc """
-  Simple benchmark for NATS client operations.
+  Simple benchmark for NATS client operations. Far from perfect :-(
 
   ## Overview
   This module's goals is to measure the amount of time it takes to perfom
@@ -35,7 +35,7 @@ defmodule ClientBench do
         fn x, acc -> Map.put(acc, x, make_mesg(x)) end)
     {:ok, {conn, subject, fake_subject, mesgs_by_size}}
   end
-  
+
   # make a message of the given size...
   defp make_mesg(size) do
     template = "Hello NATS world!"
@@ -44,11 +44,11 @@ defmodule ClientBench do
       String.slice(template, 0, rem(size, template_size))
   end
 
-  # trickery with macros...
+  # trickery and pain... with macros...
   Enum.each(@mesg_sizes, fn size -> 
     @msg_size size
     @num_pub_chunks @num_chunks
-    bench "PUB #{@num_pub_chunks}x#{size} TEST",
+    bench "PUB #{@num_pub_chunks} of size #{@msg_size}",
       [con: elem(bench_context, 0),
        sub: elem(bench_context, 2) <> "_p_#{@msg_size}",
        what: elem(bench_context, 3)[@msg_size]] do
@@ -65,7 +65,7 @@ defmodule ClientBench do
   Enum.each(@mesg_sizes, fn size -> 
     @msg_size size
     @num_pubsub_chunks @num_chunks
-    bench "PUB/SUB #{@num_pubsub_chunks}x#{@msg_size} TEST",
+    bench "PUB-SUB #{@num_pubsub_chunks} of size #{@msg_size}",
       [con: elem(bench_context, 0),
        sub: elem(bench_context, 1) <> "_ps_#{@msg_size}",
        what: elem(bench_context, 3)[@msg_size]] do
