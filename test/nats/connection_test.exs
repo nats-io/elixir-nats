@@ -34,9 +34,9 @@ defmodule Nats.ConnectionTest do
     {:ok, con } = Connection.start_link(self(), opts)
     
     assert :ok == Connection.ping(con)
-    assert :ok == Connection.subscribe(con, ">")
-    assert :ok == Connection.subscribe(con, ">", "sid")
-    assert :ok == Connection.subscribe(con, ">", "q", "sid")
+    assert :ok == Connection.sub(con, ">")
+    assert :ok == Connection.sub(con, ">", "sid")
+    assert :ok == Connection.sub(con, ">", "q", "sid")
     assert :ok == Connection.pub(con, "subject", "hello world")
     assert :ok == Connection.pub(con, "subject", "reply", "hello nats world")
 

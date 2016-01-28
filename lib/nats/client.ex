@@ -51,39 +51,58 @@ defmodule Nats.Client do
     if pid, do: send pid, {:msg, subject, reply, what}
     {:noreply, state}
   end
+  # ignore messages we get after being closed...
   def handle_info({:msg, _subject, _sid, _reply, _what}, state) do
-    # ignore messages we get after being closed...
     {:noreply, state}
   end
   def handle_cast(_command, state) do
+    # we have no casts.
 #    IO.puts "handle_cast #{inspect(command)}"
     {:noreply, state}
   end
+  # return an error for any calls after we are closed!
   def handle_call(_call, _from, state = %{status: :closed}) do
     {:reply, {:error, "connection closed"}, state}
+  end
+  def handle_call({:unsub, ref = {sid, who}, afterReceiving}, _from,
+                  state = %{subs_by_sid: subs_by_sid,
+                            subs_by_pid: subs_by_pid}) do
+    case Map.get(subs_by_sid, sid, nil) do
+      ^who ->
+        other_subs_for_pid = Map.delete(Map.get(subs_by_pid, who), sid)
+        if other_subs_for_pid do
+          subs_by_pid = Map.put(subs_by_pid, who, other_subs_for_pid)
+        else
+          # don't carry around empty maps in our state for this pid
+          subs_by_pid = Map.delete(subs_by_pid, who)
+        end
+        send state.conn, {:unsub, sid, afterReceiving}
+        {:reply, :ok, %{state |
+                        subs_by_sid: Map.delete(subs_by_sid, sid),
+                        subs_by_pid: subs_by_pid}}
+      nil ->
+        {:reply, {:error, {"not subscribed", ref}}, state}
+      _ ->
+        {:reply, {:error, {"wrong subscriber process", ref}}, state}
+    end
   end
   def handle_call({:sub, who, subject, queue}, _from,
                   state = %{subs_by_sid: subs_by_sid,
                             subs_by_pid: subs_by_pid,
                             next_sid: next_sid}) do
+    sid = "@#{next_sid}"
     m = Map.get(subs_by_pid, who, %{})
-    found = Map.get(m, subject)
-    if found do
-      {:reply, {:error, "already subscribed to #{subject}: #{inspect(who)}"},
-        state}
-    else
-      sid = "@#{next_sid}"
-      m = Map.put(m, subject, sid)
-      subs_by_pid = Map.put(subs_by_pid, who, m)
-      subs_by_sid = Map.put(subs_by_sid, sid, who)
-      state = %{state |
-                subs_by_sid: subs_by_sid,
-                subs_by_pid: subs_by_pid,
-                next_sid: next_sid + 1}
-      send state.conn, {:sub, subject, queue, sid}
-#      IO.puts "subscribed!! #{inspect(state)}" 
-      {:reply, :ok, state}
-    end
+    ref = {sid, who}
+    m = Map.put(m, sid, ref)
+    subs_by_pid = Map.put(subs_by_pid, who, m)
+    subs_by_sid = Map.put(subs_by_sid, sid, who)
+    state = %{state |
+              subs_by_sid: subs_by_sid,
+              subs_by_pid: subs_by_pid,
+              next_sid: next_sid + 1}
+    send state.conn, {:sub, subject, queue, sid}
+    #      IO.puts "subscribed!! #{inspect(state)}" 
+    {:reply, {:ok, {sid, who}}, state}
   end
   def handle_call(request, _from, state) do
     # IO.puts "handle_call #{inspect(request)}"
@@ -97,7 +116,9 @@ defmodule Nats.Client do
     GenServer.call(self, {:pub, subject, reply, what})
   end
 
-  def subscribe(self, who, subject), do: subscribe(self, who, subject, nil)
-  def subscribe(self, who, subject, queue),
+  def sub(self, who, subject, queue \\ nil),
     do: GenServer.call(self, {:sub, who, subject, queue})
+
+  def unsub(self, ref, afterReceiving \\ nil),
+    do: GenServer.call(self, {:unsub, ref, afterReceiving})
 end

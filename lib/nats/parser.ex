@@ -164,4 +164,10 @@ defmodule Nats.Parser do
   defp encode1({:sub, subject, queue, sid}) do
     <<"SUB ">> <> subject <> <<32>> <> queue <> <<32>> <> sid
   end
+  defp encode1({:unsub, sid, nil}) do
+    <<"UNSUB ">> <> sid
+  end
+  defp encode1({:unsub, sid, afterReceiving}) do
+    <<"UNSUB ">> <> sid <> <<32>> <> afterReceiving
+  end
 end

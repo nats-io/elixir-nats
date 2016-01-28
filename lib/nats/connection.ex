@@ -68,9 +68,9 @@ defmodule Nats.Connection do
   def info(self, map), do: (send self, {:info, map}; :ok)
   def connect(self, map), do: (send self, {:connect, map}; :ok)
   def error(self, msg), do: (send self, {:err, msg}; :ok)
-  def subscribe(self, subject), do: subscribe(self, subject, nil, subject)
-  def subscribe(self, subject, sid), do: subscribe(self, subject, nil, sid)
-  def subscribe(self, subject, queue, sid) do
+  def sub(self, subject), do: sub(self, subject, nil, subject)
+  def sub(self, subject, sid), do: sub(self, subject, nil, sid)
+  def sub(self, subject, queue, sid) do
     send self, {:sub, subject, queue, sid}
     :ok
   end
@@ -134,6 +134,7 @@ defmodule Nats.Connection do
       {:err, why} -> nats_err(state, why)
       {:msg, sub, sid, rep, what} -> nats_msg(state, sub, sid, rep, what)
       {:pub, sub, rep, what} -> nats_pub(state, sub, rep, what)
+      {:unsub, sid, howMany} -> nats_unsub(state, sid, howMany)
       _ -> nats_err(state, "received bad NATS verb: -> #{inspect(msg)}")
     end
   end
@@ -216,6 +217,10 @@ defmodule Nats.Connection do
   end
   defp nats_pub(state = %{state: :connected}, sub, ret, body) do
     debug_log state, ["received PUB", sub, ret, body]
+    {:noreply, state}
+  end
+  defp nats_unsub(state = %{state: :connected}, sid, howMany) do
+    debug_log state, ["received UNSUB", sid, howMany]
     {:noreply, state}
   end
 end

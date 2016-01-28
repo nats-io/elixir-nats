@@ -118,14 +118,14 @@ defmodule Nats.ParserTest do
   end
  
   test "UNSUB parsing" do
-    {:ok, rest, "", _} =  Nats.Parser.parse("UNSUB subj\r\n")
-    assert rest == {:unsub, "subj", nil}
+    {:ok, rest, "", _} =  Nats.Parser.parse("UNSUB sid\r\n")
+    assert rest == {:unsub, "sid", nil}
 
-    { v, rest, "", _ } = Nats.Parser.parse("UNSUB subj 10\r\n")
+    { v, rest, "", _ } = Nats.Parser.parse("UNSUB sid 10\r\n")
     assert v == :ok
-    assert rest == {:unsub, "subj", 10}
+    assert rest == {:unsub, "sid", 10}
 
-    { v, _rest, _ } = Nats.Parser.parse("UNSUB subj bad\r\n")
+    { v, _rest, _ } = Nats.Parser.parse("UNSUB sid bad\r\n")
     assert v == :error
   end
  

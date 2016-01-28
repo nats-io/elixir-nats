@@ -70,8 +70,9 @@ defmodule ClientBench do
        sub: elem(bench_context, 1) <> "_ps_#{@msg_size}",
        what: elem(bench_context, 3)[@msg_size]] do
       # ideally done once, lazy ;-)
-      Client.subscribe(con, self(), sub)
+      {:ok, ref} = Client.sub(con, self(), sub)
       do_pubsub(con, sub, what, @num_pubsub_chunks)
+      Client.unsub(con, ref)
     end
     defp do_pubsub(_, _, _, 0), do: :ok
     defp do_pubsub(con, sub, what, n) do
