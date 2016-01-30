@@ -90,7 +90,7 @@ defmodule Nats.Client do
                   state = %{subs_by_sid: subs_by_sid,
                             subs_by_pid: subs_by_pid,
                             next_sid: next_sid}) do
-    sid = "@#{next_sid}"
+    sid = Integer.to_string(next_sid)
     m = Map.get(subs_by_pid, who, %{})
     ref = {sid, who}
     m = Map.put(m, sid, ref)

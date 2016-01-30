@@ -30,6 +30,7 @@ defmodule Nats.Connection do
     state = %{state |
               worker: worker,
               opts: opts,
+              ps: nil,
               log_header: "NATS: #{inspect(self())}: "
              }
     debug_log state, "starting link"
@@ -110,6 +111,7 @@ defmodule Nats.Connection do
   defp handle_packet(state, packet) do
     debug_log state, ["received packet", packet]
     pres = Nats.Parser.parse(state.ps, packet)
+    debug_log state, ["parsed packet", pres]
     case pres do
       {:ok, msg, rest, nps} ->
         debug_log state, ["parsed packet", msg]

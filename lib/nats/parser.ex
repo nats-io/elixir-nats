@@ -1,115 +1,173 @@
 # Copyright 2016 Apcera Inc. All rights reserved.
 defmodule Nats.Parser do
 
-  @default_state %{ps: :verb, lexs: [], msg: nil, size: nil, verb: nil}
-  def init do
-    @default_state
+  defp parse_err(mesg) do
+    {:error, "NATS: parsing error: #{mesg}", nil}
   end
 
-  defp parse_json(state, rest, verb, str) do
-    case :json_lexer.string(str) do
+  @min_lookahead 4
+  defp init_state(rest \\ <<>>, func \\ &verb/2, state \\ nil),
+    do: {func, rest, state}
+  defp cont(func, state, how_many \\ @min_lookahead, rest \\ <<>>),
+    do: {:cont, how_many, init_state(rest, func, state)}
+  def parse(string), do: parse(init_state, string)
+  def parse(nil, string), do: parse(init_state, string)
+  def parse({ func, <<>>, state}, string), do: func.(string, state)
+  def parse({ func, buff, state}, string), do: func.(<<buff :: bits,
+                                                     string :: bits>>, state)
+  defp verb(<<"MSG ", rest :: bits>>, _), do: args(rest, [:msg])
+  defp verb(<<"PUB ", rest :: bits>>, _), do: args(rest, [:pub])
+  defp verb(<<"SUB ", rest :: bits>>, _), do: args(rest, [:sub])
+  defp verb(<<"UNSUB ", rest :: bits>>, _), do: args(rest, [:unsub])
+  defp verb(<<"+OK\r\n", rest :: bits>>, _), do: done(rest, :ok)
+  defp verb(<<"PING\r\n", rest :: bits>>, _), do: done(rest, :ping)
+  defp verb(<<"PONG\r\n", rest :: bits>>, _), do: done(rest, :pong)
+  defp verb(<<"CONNECT ", rest :: bits>>, _), do: json(rest, :connect, <<>>)
+  defp verb(<<"INFO ", rest :: bits>>, _), do: json(rest, :info, <<>>)
+  defp verb(<<"-ERR ", rest :: bits>>, _), do: err(rest, <<>>)
+
+  defp verb(other, state) when byte_size(other) < @min_lookahead,
+    # FIXME: jam: fail faster...
+    do: cont(&verb/2, state, @min_lookahead, other)
+  defp verb(buff, _) do
+    read = binary_part(buff, 0, min(16, byte_size(buff)))
+    parse_err("invalid protocol bytes: #{inspect(read)}")
+  end
+  
+  defp err(<<>>, acc), do: cont(&err/2, acc)
+  defp err(what = <<?\r, _ :: bits>>, acc), do: done(what, [acc, :err])
+  defp err(what = <<?\n, _ :: bits>>, acc), do: done(what, [acc, :err])
+  defp err(<<char, rest :: bits>>, acc), do: err(rest, <<acc::bits, char>>)
+  defp json(<<>>, acc), do: cont(&json/2, acc)
+  defp json(what = <<?\r, _ :: bits>>, verb, acc), do: done(what, [acc, verb])
+  defp json(what = <<?\n, _ :: bits>>, verb, acc), do: done(what, [acc, verb])
+  defp json(<<char, rest :: bits>>, verb, acc),
+    do: json(rest, verb, <<acc :: bits, char>>)
+
+  defp args(<<>>, argv), do: cont(&args/2, argv)
+  defp args(what = <<?\r, _ :: bits>>, argv), do: done(what, argv)
+  defp args(what = <<?\n, _ :: bits>>, argv), do: done(what,  argv)
+  defp args(<<?\s, rest :: bits>>, argv), do: args(rest, argv)
+  defp args(<<?\t, rest :: bits>>, argv), do: args(rest, argv)
+  defp args(<<first, rest :: bits>>, argv),
+    do: args_arg(rest, <<first>>, argv)
+
+  # broken out of the above (and below) for continutions
+  defp args_arg(buf, so_far, argv) do
+    case arg(buf, so_far) do
+      {:ok, res, rest} -> args(rest, [res|argv])
+      {:cont, sofar} -> cont(&(args_arg(&1, &2, argv)), sofar)
+      other -> other
+    end
+  end
+  
+  defp arg(<<>>, acc), do: {:cont, acc}
+  defp arg(<<?\s, rest :: bits>>, acc), do: {:ok, acc, rest}
+  defp arg(<<?\t, rest :: bits>>, acc), do: {:ok, acc, rest}
+  defp arg(what = <<?\r, _ :: bits>>, acc), do: {:ok, acc, what}
+  defp arg(what = <<?\n, _ :: bits>>, acc), do: {:ok, acc, what}
+  defp arg(<<char, rest :: bits>>, acc),
+    do: arg(rest, <<acc :: bits, char>>)
+
+  # We're at the end of the body
+  defp body(<<"\r\n", rest::bits>>, 0, verb, acc),
+    do: {:ok, put_elem(verb, tuple_size(verb) - 1, acc), rest, init_state}
+  # We're at the end of the body, but its malformed (missing `\\r\\n`)
+  defp body(_rest, 0, verb, _acc),
+    do: parse_err("malformed body trailer for: #{inspect(verb)}")
+  defp body(<<>>, nleft, verb, acc),
+    do: cont(&body_cont/2, {nleft, verb, acc})
+
+  # "We have N more bytes to read"
+  defp body(rest, nleft, verb, acc) do
+    rest_size = byte_size(rest)
+    to_read = min(nleft, rest_size)
+#    IO.puts("body -> #{inspect(nleft)} rest=#{inspect(rest)} acc=#{inspect(acc)}")
+    <<read :: bytes-size(to_read), remainder :: bits>> = rest
+    body(remainder, nleft - to_read, verb, <<acc :: bits, read :: bits>>)
+  end
+  defp body_cont(buff, {nleft, verb, acc}), do: body(buff, nleft, verb, acc)
+
+  defp done(rest, verb) when is_atom(verb) do
+    {:ok, {verb}, rest, nil}
+  end
+  defp done(buff, argv) when byte_size(buff) < 2, do: cont(&done/2, argv, buff)
+  defp done(<<"\r\n", rest :: bits>>, argv) do
+    verb = done1(List.to_tuple(Enum.reverse(argv)))
+    case verb do
+      {:body, want, real_verb} -> body(rest, want, real_verb, <<>>)
+      {:error, _, _} -> verb
+      other -> {:ok, other, rest, init_state(rest)}
+    end
+  end
+  defp done(<<c1, c2, _ :: bits>>, _),
+    do: parse_err("invalid trailer `#{c1}#{c2}`")
+
+  defp parse_json(verb, json_str) do
+    case :json_lexer.string(to_char_list(json_str)) do
       {:ok, tokens, _} ->
         pres = :json_parser.parse(tokens)
         case pres do
-          {:ok, json } when is_map(json) -> {:ok, {verb, json}, rest, state}
-          {:ok, json } -> parse_err(state, "not a json object in #{verb}", json)
-          {:error, {_, what, mesg}} -> parse_err(state, "invalid json in #{verb}", "#{what}: #{mesg}")
-          other -> parse_err(state, "unexpected json parser result in #{verb}", other)
+          {:ok, json } when is_map(json) -> {verb, json}
+          {:ok, _ } ->
+            parse_err("not a json object in #{verb}: #{inspect(json_str)}")
+          {:error, {_, what, mesg}} ->
+            parse_err("invalid json in #{verb} #{what}: #{mesg}: #{inspect(json_str)}")
+          other ->
+            parse_err("unexpected json parser result for #{verb}: #{inspect(other)}: #{inspect(json_str)}")
         end
-      {:eof, _} -> parse_err(state, "json not complete in #{verb}")
-      {:error, {_, why, mesg}} -> parse_err(state, "invalid json tokens in #{verb}", [why, mesg])
+      {:eof, _} ->
+        parse_err("json not complete in #{verb}: #{inspect(json_str)}")
+      {:error, {_, why, mesg}} ->
+        parse_err("invalid json tokens in #{verb}: #{why}: #{mesg}")
       # safe programming ;-)
-      other -> parse_err(state, "unexpected json lexer result for json in #{verb}", other)
+      other -> parse_err("unexpected json lexer result for json in #{verb}: #{inspect(other)}: #{inspect(json_str)}")
     end
   end
 
-  defp parse_err(state, mesg) do
-    {:error, "NATS: parsing error: #{mesg}", %{state | ps: :error}}
-  end
-  defp parse_err(state, mesg, what) do
-    parse_err(state, "#{mesg}: #{inspect(what)}")
-  end
+  
+  defp done1(w = {:err, _}), do: w
+  defp done1({:info, json}), do: parse_json(:info, json)
+  defp done1({:connect, json}), do: parse_json(:connect, json)
+  defp done1({:unsub, sid}), do: {:unsub, sid, nil}
+  defp done1({:unsub, sid, maxs}) when is_binary(maxs),
+    do: done1({:unsub, sid, parse_int(maxs)})
+  defp done1({:unsub, sid, maxs}) when maxs == nil or is_integer(maxs),
+    do: {:unsub, sid, maxs}
 
-  @endverb "\r\n"
+  defp done1(w = {:sub, _sub, _q, _sid}), do: w
+  defp done1({:sub, sub,    sid}), do: {:sub, sub, nil, sid}
 
-  def parse(string) do parse(nil, string) end
-  def parse(nil, string) do parse(@default_state, string) end
+  defp done1({:pub, sub, size}),
+    do: done1({:pub, sub, nil, parse_int(size)})
+  defp done1({:pub, sub, ret, size}) when is_binary(size),
+    do: done1({:pub, sub, ret, parse_int(size)})
+  defp done1(verb = {:pub, _sub, _ret, size}) when is_integer(size),
+    do: {:body, size, verb}
 
-# @doc """
-#  Parse a the NATS protocol from the given `stream`.
-#
-#  Returns {:ok, message, rest} if a message is parsed from the passed stream, 
-#  or {:cont, fn } if the message is incomplete.
-#
-#  ## Examples
-#
-#  iex>  Nats.Protocol.parse("-ERROR foo\r\n+OK\r")
-#  {:ok, {:error, "foo"}, state}
-#  iex>  Nats.Protocol.parse("+OK\r")
-#  {:cont, ... }
-#  """
-
-  def parse(state = %{ps: :body}, thing), do: parse_body(state, thing)
-  def parse(state = %{ps: :verb, lexs: ls}, thing) do
-    res = :nats_lexer.tokens(ls, to_char_list(thing))
-    #IO.puts "lex got: #{inspect(nls)}"
-    case res do
-      {:done, {:ok, tokens, _}, rest} -> parse_verb(state, tokens, to_string(rest))
-      {:done, {:eof, _}} -> parse_err(state, "message not complete")
-      {:more, nls} -> {:cont, 0, %{state | lexs: nls}}
-      other -> parse_err(state, "unexpected lexer return", other)
+  defp done1({:msg, sub,  sid, size}) when is_binary(size),
+    do: done1({:msg, sub, sid, nil, parse_int(size)})
+  defp done1({:msg, sub, sid, ret, size}) when is_binary(size),
+    do: done1({:msg, sub, sid, ret, parse_int(size)})
+  defp done1(verb = {:msg, _sub, _sid, _ret, size}) when is_integer(size), 
+    do: {:body, size, verb}
+  defp done1(verb) do
+    why = ""
+    # total hack to fix up things so there is ONE error that makes sense
+    v = elem(verb, 0)
+    if v == :msg || v == :pub do
+      case elem(verb, tuple_size(verb) - 1) do
+    		{:error, reason} -> why = ": #{reason}"
+        size -> size
+      end
     end
+#    IO.puts("done1 catchall: #{inspect(verb)}: #{why}")
+    parse_err("invalid arguments to #{elem(verb,0)}#{why}")
   end
+  defp parse_int(what), do: parse_int1(what, Integer.parse(what, 10))
+  defp parse_int1(_orig, {result, <<>>}) when result >= 0, do: result
+  defp parse_int1(orig, _), do: {:error, "invalid integer: #{orig}"}
 
-  defp parse_verb(state, tokens, rest) do  # when is_list(thing) do
-    pres = :nats_parser.parse(tokens)
-    case pres do
-      {:ok, {:info, str}} -> parse_json(state, rest, :info, str)
-      {:ok, {:connect, str}} -> parse_json(state, rest, :connect, str)
-      {:ok, verb = {:msg, _, _, _, len}} -> 
-        parse_body(%{state | ps: :body, size: len + 2, msg: <<>>, verb: verb},
-                   rest)
-      {:ok, verb = {:pub, _, _, len}} ->
-        parse_body(%{state | ps: :body, size: len + 2, msg: <<>>, verb: verb},
-                   rest)
-      {:ok, verb } -> {:ok, verb, rest, state}
-      {:error, {_, _, mesg}} -> parse_err(state, "invalid message", mesg)
-      other -> parse_err(state, "unexpected parser return", other)
-    end
-  end
-
-  # We've parsed the whole body. There may be remaining bytes left in rest
-  # so make sure we return them..
-  defp parse_body(state = %{ps: :body, size: 0, msg: bd, verb: v}, rest) do
-    # replace the last value in the verb with the body.
-    tsz = tuple_size(v) - 1
-    body_size = elem(v, tsz)
-    part = binary_part(bd, body_size, 2)
-    #  IO.puts "PART -> #{inspect(part)}"
-    if part != "\r\n" do
-      parse_err(state, "missing body trailer for #{inspect(v)}", part)
-    else
-      {:ok, put_elem(v, tsz, binary_part(bd, 0, body_size)),
-       rest, @default_state}
-    end
-  end
-
-  # We've run out of anything to parse and are still looking for a body
-  # let the parser's caller know we want more data...
-  defp parse_body(state = %{ps: :body, size: sz}, <<>>) do
-    {:cont, sz, state}
-  end
-
-  # We have more data to read in our body AND there is data to be read, yeah!!!
-  # See how much we can slurp up
-  defp parse_body(state = %{ps: :body, size: sz, msg: body}, rest) do
-    # rest = :erlang.list_to_binary(rest)
-    rest_size = byte_size(rest)
-    to_read = min(sz, rest_size)
-    <<read :: binary-size(to_read), remainder::binary>> = rest
-    # IO.puts "reading (#{to_read}): #{inspect(read)}: rest=#{inspect(remainder)}"
-    parse_body(%{state | size: sz - to_read, msg: <<body <> read>>}, remainder)
-  end
  
   def to_json(false) do <<"false">> end
   def to_json(true) do <<"true">> end
@@ -129,6 +187,7 @@ defmodule Nats.Parser do
   defp member_pair(k,v) when is_binary(k) do
     to_json(k) <> <<": ">> <> to_json(v)
   end
+  @endverb "\r\n"
   def encode(mesg) do
     encode1(mesg) <> @endverb
   end
