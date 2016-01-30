@@ -5,7 +5,7 @@
     <meta http-equiv="x-ua-compatible" content="ie=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="ExDoc v0.11.4">
-    <title>Nats.Connection – Nats v0.1.4</title>
+    <title>Nats.Connection – Nats v0.1.5</title>
     <link rel="stylesheet" href="dist/app-1e374caa3d.css" />
     <script src="dist/sidebar_items.js"></script>
   </head>
@@ -21,13 +21,13 @@
   </button>
 
   
-  <a href="api-reference.html" class="sidebar-projectLink">
+  <a href="readme.html" class="sidebar-projectLink">
     <div class="sidebar-projectDetails">
       <h1 class="sidebar-projectName">
         Nats
       </h1>
       <h2 class="sidebar-projectVersion">
-        v0.1.4
+        v0.1.5
       </h2>
     </div>
     
@@ -59,11 +59,11 @@
 
 
       <h1>
-        <small class="visible-xs">Nats v0.1.4</small>
+        <small class="visible-xs">Nats v0.1.5</small>
         Nats.Connection
         
         
-          <a href="https://github.com/nats-io/elixir-nats/blob/master/lib/nats/connection.ex#L2" title="View Source" class="view-source" rel="help">
+          <a href="https://github.com/nats-io/elixir-nats/blob/v0.1.5/lib/nats/connection.ex#L2" title="View Source" class="view-source" rel="help">
             <i class="icon-code"></i>
           </a>
         
@@ -160,19 +160,19 @@
 </div>
 <div class="summary-row">
   <div class="summary-signature">
-    <a href="#subscribe/2">subscribe(self, subject)</a>
+    <a href="#sub/2">sub(self, subject)</a>
   </div>
   
 </div>
 <div class="summary-row">
   <div class="summary-signature">
-    <a href="#subscribe/3">subscribe(self, subject, sid)</a>
+    <a href="#sub/3">sub(self, subject, sid)</a>
   </div>
   
 </div>
 <div class="summary-row">
   <div class="summary-signature">
-    <a href="#subscribe/4">subscribe(self, subject, queue, sid)</a>
+    <a href="#sub/4">sub(self, subject, queue, sid)</a>
   </div>
   
 </div>
@@ -204,7 +204,7 @@
     </a>
     <span class="signature">connect(self, map)</span>
       
-      <a href="https://github.com/nats-io/elixir-nats/blob/master/lib/nats/connection.ex#L69" class="view-source" rel="help" title="View Source">
+      <a href="https://github.com/nats-io/elixir-nats/blob/v0.1.5/lib/nats/connection.ex#L70" class="view-source" rel="help" title="View Source">
        <i class="icon-code"></i>
      </a>
     
@@ -221,7 +221,7 @@
     </a>
     <span class="signature">error(self, msg)</span>
       
-      <a href="https://github.com/nats-io/elixir-nats/blob/master/lib/nats/connection.ex#L70" class="view-source" rel="help" title="View Source">
+      <a href="https://github.com/nats-io/elixir-nats/blob/v0.1.5/lib/nats/connection.ex#L71" class="view-source" rel="help" title="View Source">
        <i class="icon-code"></i>
      </a>
     
@@ -238,7 +238,7 @@
     </a>
     <span class="signature">info(self, map)</span>
       
-      <a href="https://github.com/nats-io/elixir-nats/blob/master/lib/nats/connection.ex#L68" class="view-source" rel="help" title="View Source">
+      <a href="https://github.com/nats-io/elixir-nats/blob/v0.1.5/lib/nats/connection.ex#L69" class="view-source" rel="help" title="View Source">
        <i class="icon-code"></i>
      </a>
     
@@ -255,7 +255,7 @@
     </a>
     <span class="signature">msg(self, subject, what)</span>
       
-      <a href="https://github.com/nats-io/elixir-nats/blob/master/lib/nats/connection.ex#L82" class="view-source" rel="help" title="View Source">
+      <a href="https://github.com/nats-io/elixir-nats/blob/v0.1.5/lib/nats/connection.ex#L83" class="view-source" rel="help" title="View Source">
        <i class="icon-code"></i>
      </a>
     
@@ -272,7 +272,7 @@
     </a>
     <span class="signature">msg(self, subject, sid, what)</span>
       
-      <a href="https://github.com/nats-io/elixir-nats/blob/master/lib/nats/connection.ex#L83" class="view-source" rel="help" title="View Source">
+      <a href="https://github.com/nats-io/elixir-nats/blob/v0.1.5/lib/nats/connection.ex#L84" class="view-source" rel="help" title="View Source">
        <i class="icon-code"></i>
      </a>
     
@@ -289,7 +289,7 @@
     </a>
     <span class="signature">msg(self, subject, sid, reply_queue, what)</span>
       
-      <a href="https://github.com/nats-io/elixir-nats/blob/master/lib/nats/connection.ex#L84" class="view-source" rel="help" title="View Source">
+      <a href="https://github.com/nats-io/elixir-nats/blob/v0.1.5/lib/nats/connection.ex#L85" class="view-source" rel="help" title="View Source">
        <i class="icon-code"></i>
      </a>
     
@@ -306,7 +306,7 @@
     </a>
     <span class="signature">ok(self)</span>
       
-      <a href="https://github.com/nats-io/elixir-nats/blob/master/lib/nats/connection.ex#L67" class="view-source" rel="help" title="View Source">
+      <a href="https://github.com/nats-io/elixir-nats/blob/v0.1.5/lib/nats/connection.ex#L68" class="view-source" rel="help" title="View Source">
        <i class="icon-code"></i>
      </a>
     
@@ -323,7 +323,7 @@
     </a>
     <span class="signature">ping(self)</span>
       
-      <a href="https://github.com/nats-io/elixir-nats/blob/master/lib/nats/connection.ex#L65" class="view-source" rel="help" title="View Source">
+      <a href="https://github.com/nats-io/elixir-nats/blob/v0.1.5/lib/nats/connection.ex#L66" class="view-source" rel="help" title="View Source">
        <i class="icon-code"></i>
      </a>
     
@@ -340,7 +340,7 @@
     </a>
     <span class="signature">pong(self)</span>
       
-      <a href="https://github.com/nats-io/elixir-nats/blob/master/lib/nats/connection.ex#L66" class="view-source" rel="help" title="View Source">
+      <a href="https://github.com/nats-io/elixir-nats/blob/v0.1.5/lib/nats/connection.ex#L67" class="view-source" rel="help" title="View Source">
        <i class="icon-code"></i>
      </a>
     
@@ -357,7 +357,7 @@
     </a>
     <span class="signature">pub(self, subject, what)</span>
       
-      <a href="https://github.com/nats-io/elixir-nats/blob/master/lib/nats/connection.ex#L77" class="view-source" rel="help" title="View Source">
+      <a href="https://github.com/nats-io/elixir-nats/blob/v0.1.5/lib/nats/connection.ex#L78" class="view-source" rel="help" title="View Source">
        <i class="icon-code"></i>
      </a>
     
@@ -374,7 +374,7 @@
     </a>
     <span class="signature">pub(self, subject, reply, what)</span>
       
-      <a href="https://github.com/nats-io/elixir-nats/blob/master/lib/nats/connection.ex#L78" class="view-source" rel="help" title="View Source">
+      <a href="https://github.com/nats-io/elixir-nats/blob/v0.1.5/lib/nats/connection.ex#L79" class="view-source" rel="help" title="View Source">
        <i class="icon-code"></i>
      </a>
     
@@ -391,7 +391,7 @@
     </a>
     <span class="signature">start_link(worker, opts)</span>
       
-      <a href="https://github.com/nats-io/elixir-nats/blob/master/lib/nats/connection.ex#L27" class="view-source" rel="help" title="View Source">
+      <a href="https://github.com/nats-io/elixir-nats/blob/v0.1.5/lib/nats/connection.ex#L27" class="view-source" rel="help" title="View Source">
        <i class="icon-code"></i>
      </a>
     
@@ -401,14 +401,14 @@
     
   </section>
 </div>
-<div class="detail" id="subscribe/2">
+<div class="detail" id="sub/2">
   <div class="detail-header">
-    <a href="#subscribe/2" class="detail-link" title="Link to this function">
+    <a href="#sub/2" class="detail-link" title="Link to this function">
       <i class="icon-link"></i>
     </a>
-    <span class="signature">subscribe(self, subject)</span>
+    <span class="signature">sub(self, subject)</span>
       
-      <a href="https://github.com/nats-io/elixir-nats/blob/master/lib/nats/connection.ex#L71" class="view-source" rel="help" title="View Source">
+      <a href="https://github.com/nats-io/elixir-nats/blob/v0.1.5/lib/nats/connection.ex#L72" class="view-source" rel="help" title="View Source">
        <i class="icon-code"></i>
      </a>
     
@@ -418,14 +418,14 @@
     
   </section>
 </div>
-<div class="detail" id="subscribe/3">
+<div class="detail" id="sub/3">
   <div class="detail-header">
-    <a href="#subscribe/3" class="detail-link" title="Link to this function">
+    <a href="#sub/3" class="detail-link" title="Link to this function">
       <i class="icon-link"></i>
     </a>
-    <span class="signature">subscribe(self, subject, sid)</span>
+    <span class="signature">sub(self, subject, sid)</span>
       
-      <a href="https://github.com/nats-io/elixir-nats/blob/master/lib/nats/connection.ex#L72" class="view-source" rel="help" title="View Source">
+      <a href="https://github.com/nats-io/elixir-nats/blob/v0.1.5/lib/nats/connection.ex#L73" class="view-source" rel="help" title="View Source">
        <i class="icon-code"></i>
      </a>
     
@@ -435,14 +435,14 @@
     
   </section>
 </div>
-<div class="detail" id="subscribe/4">
+<div class="detail" id="sub/4">
   <div class="detail-header">
-    <a href="#subscribe/4" class="detail-link" title="Link to this function">
+    <a href="#sub/4" class="detail-link" title="Link to this function">
       <i class="icon-link"></i>
     </a>
-    <span class="signature">subscribe(self, subject, queue, sid)</span>
+    <span class="signature">sub(self, subject, queue, sid)</span>
       
-      <a href="https://github.com/nats-io/elixir-nats/blob/master/lib/nats/connection.ex#L73" class="view-source" rel="help" title="View Source">
+      <a href="https://github.com/nats-io/elixir-nats/blob/v0.1.5/lib/nats/connection.ex#L74" class="view-source" rel="help" title="View Source">
        <i class="icon-code"></i>
      </a>
     

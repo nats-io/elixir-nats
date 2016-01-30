@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.11.4">
+    <title>README – Nats v0.1.5</title>
+    <link rel="stylesheet" href="dist/app-1e374caa3d.css" />
+    <script src="dist/sidebar_items.js"></script>
+  </head>
+  <body data-type="extras">
+
+<div class="main">
+<button class="sidebar-toggle">
+  <i class="icon-menu"></i>
+</button>
+<section class="sidebar">
+  <button class="sidebar-toggle">
+    <i class="icon-menu"></i>
+  </button>
+
+  
+  <a href="readme.html" class="sidebar-projectLink">
+    <div class="sidebar-projectDetails">
+      <h1 class="sidebar-projectName">
+        Nats
+      </h1>
+      <h2 class="sidebar-projectVersion">
+        v0.1.5
+      </h2>
+    </div>
+    
+  </a>
+
+  <div class="sidebar-search">
+    <i class="icon-search"></i>
+    <input type="text" class="sidebar-searchInput" placeholder="search" autocomplete="off" />
+  </div>
+
+  <ul class="sidebar-listNav">
+    <li><a id="extras-list" href="#full-list">Pages</a></li>
+
+    
+      <li><a id="modules-list" href="#full-list">Modules</a></li>
+    
+
+    
+
+    
+  </ul>
+
+  <ul id="full-list" class="sidebar-fullList"></ul>
+  <div class="sidebar-noResults"></div>
+</section>
+
+<section class="content">
+  <div id="content" class="content-inner">
+
+
+<h1>An Elixir framework for <a href="https://nats.io/">NATS</a></h1>
+<p><a href="https://travis-ci.org/nats-io/elixir-nats"><img src="https://travis-ci.org/nats-io/elixir-nats.svg?branch=master" alt="Build Status"/></a>
+<a href="https://coveralls.io/github/nats-io/elixir-nats?branch=master"><img src="https://coveralls.io/repos/github/nats-io/elixir-nats/badge.svg?branch=master" alt="Coverage Status"/></a></p>
+<p><em>Elixir style</em> documentation is located <a href="https://nats-io.github.io/elixir-nats/">here</a></p>
+<h2 id="getting-started"> Getting Started</h2><p>Install Elixir</p>
+<p>To use the framework in your project, add the following to your <code class="inline">mix.exs</code>:</p>
+<pre><code class="elixir">defp deps do
+    # for github
+    [{:nats, git: &quot;https://github.com/nats-io/elixir-nats.git&quot;}]
+    # for hex (forthcoming)
+    [{:natsio, &quot;~&gt; 0.1.5&quot;}]
+end</code></pre>
+<h2 id="to-build-and-or-test-from-sources"> To build and/or test from sources</h2><p>Clone, fork or pull this repository. And then:</p>
+<pre><code class="sh">$ mix deps.get
+$ mix compile
+$ mix test</code></pre>
+<p>To run the examples:</p>
+<pre><code class="sh">$ mix run examples/sub.exs
+$ mix run examples/pub.exs</code></pre>
+<p>The default NATS configuration looks for a <a href="https://github.com/nats-io/gnatsd">gnatsd</a> instance running on the default port of 4222 on 127.0.0.1.</p>
+<p>You can override the configuration by passing a map to <code class="inline">Client.start_link</code>. For example:</p>
+<pre><code class="elixir">  alias Nats.Client
+  
+  nats_conf = %{host: &quot;some-host&quot;, port: 3222,
+                tls_required: true,
+                auth: %{ user: &quot;some-user&quot;, pass: &quot;some-pass&quot;}}
+  {:ok, ref} = Client.start_link(nats_conf)
+  Client.pub(ref, &quot;subject&quot;, &quot;hello NATS world!&quot;)</code></pre>
+<p>The framework leverages the standard logger, by default only errors are logged. To view additional logging, update your <code class="inline">config/config.exs</code>:</p>
+<pre><code class="elixir">use Mix.Config
+
+# debug will log most everything
+# info prints connection lifecycle events
+# error prints errors
+config :logger, level: :debug</code></pre>
+<h2 id="status"> Status</h2><p>Most NATS related capabilities are in place: publishing, subscribing, tls,
+authorization.</p>
+<p>Elixir Application, supervisor/monitor and environment support needs improved</p>
+<p>Documentation is minimal. For now:</p>
+<pre><code class="sh">$ mix docs
+$ open docs/index.html
+$ cat examples/*.exs</code></pre>
+<h2 id="license"> License</h2><p><a href="LICENSE">License</a></p>
+<p>Copyright 2016 Apcera Inc. All rights reserved. </p>
+
+    <footer class="footer">
+      <p>
+        <span class="line">
+          Built using
+          <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" rel="help" target="_blank">ExDoc</a> (v0.11.4),
+        </span>
+        <span class="line">
+          designed by
+          <a href="https://twitter.com/dignifiedquire" target="_blank" title="@dignifiedquire">Friedel Ziegelmayer</a>.
+          </span>
+      </p>
+      <button class="night-mode-toggle" />
+    </footer>
+  </div>
+</section>
+</div>
+  <script src="dist/app-6d2e071366.js"></script>
+  </body>
+</html>
+

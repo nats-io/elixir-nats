@@ -5,7 +5,7 @@
     <meta http-equiv="x-ua-compatible" content="ie=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="ExDoc v0.11.4">
-    <title>Nats.Client – Nats v0.1.4</title>
+    <title>Nats.Client – Nats v0.1.5</title>
     <link rel="stylesheet" href="dist/app-1e374caa3d.css" />
     <script src="dist/sidebar_items.js"></script>
   </head>
@@ -21,13 +21,13 @@
   </button>
 
   
-  <a href="api-reference.html" class="sidebar-projectLink">
+  <a href="readme.html" class="sidebar-projectLink">
     <div class="sidebar-projectDetails">
       <h1 class="sidebar-projectName">
         Nats
       </h1>
       <h2 class="sidebar-projectVersion">
-        v0.1.4
+        v0.1.5
       </h2>
     </div>
     
@@ -59,11 +59,11 @@
 
 
       <h1>
-        <small class="visible-xs">Nats v0.1.4</small>
+        <small class="visible-xs">Nats v0.1.5</small>
         Nats.Client
         
         
-          <a href="https://github.com/nats-io/elixir-nats/blob/master/lib/nats/client.ex#L2" title="View Source" class="view-source" rel="help">
+          <a href="https://github.com/nats-io/elixir-nats/blob/v0.1.5/lib/nats/client.ex#L2" title="View Source" class="view-source" rel="help">
             <i class="icon-code"></i>
           </a>
         
@@ -112,13 +112,13 @@
 </div>
 <div class="summary-row">
   <div class="summary-signature">
-    <a href="#subscribe/3">subscribe(self, who, subject)</a>
+    <a href="#sub/4">sub(self, who, subject, queue \\ nil)</a>
   </div>
   
 </div>
 <div class="summary-row">
   <div class="summary-signature">
-    <a href="#subscribe/4">subscribe(self, who, subject, queue)</a>
+    <a href="#unsub/3">unsub(self, ref, afterReceiving \\ nil)</a>
   </div>
   
 </div>
@@ -150,7 +150,7 @@
     </a>
     <span class="signature">pub(self, subject, what)</span>
       
-      <a href="https://github.com/nats-io/elixir-nats/blob/master/lib/nats/client.ex#L95" class="view-source" rel="help" title="View Source">
+      <a href="https://github.com/nats-io/elixir-nats/blob/v0.1.5/lib/nats/client.ex#L114" class="view-source" rel="help" title="View Source">
        <i class="icon-code"></i>
      </a>
     
@@ -167,7 +167,7 @@
     </a>
     <span class="signature">pub(self, subject, reply, what)</span>
       
-      <a href="https://github.com/nats-io/elixir-nats/blob/master/lib/nats/client.ex#L96" class="view-source" rel="help" title="View Source">
+      <a href="https://github.com/nats-io/elixir-nats/blob/v0.1.5/lib/nats/client.ex#L115" class="view-source" rel="help" title="View Source">
        <i class="icon-code"></i>
      </a>
     
@@ -184,7 +184,7 @@
     </a>
     <span class="signature">start(opts \\ %{})</span>
       
-      <a href="https://github.com/nats-io/elixir-nats/blob/master/lib/nats/client.ex#L25" class="view-source" rel="help" title="View Source">
+      <a href="https://github.com/nats-io/elixir-nats/blob/v0.1.5/lib/nats/client.ex#L25" class="view-source" rel="help" title="View Source">
        <i class="icon-code"></i>
      </a>
     
@@ -201,7 +201,7 @@
     </a>
     <span class="signature">start_link(opts \\ %{})</span>
       
-      <a href="https://github.com/nats-io/elixir-nats/blob/master/lib/nats/client.ex#L22" class="view-source" rel="help" title="View Source">
+      <a href="https://github.com/nats-io/elixir-nats/blob/v0.1.5/lib/nats/client.ex#L22" class="view-source" rel="help" title="View Source">
        <i class="icon-code"></i>
      </a>
     
@@ -211,14 +211,14 @@
     
   </section>
 </div>
-<div class="detail" id="subscribe/3">
+<div class="detail" id="sub/4">
   <div class="detail-header">
-    <a href="#subscribe/3" class="detail-link" title="Link to this function">
+    <a href="#sub/4" class="detail-link" title="Link to this function">
       <i class="icon-link"></i>
     </a>
-    <span class="signature">subscribe(self, who, subject)</span>
+    <span class="signature">sub(self, who, subject, queue \\ nil)</span>
       
-      <a href="https://github.com/nats-io/elixir-nats/blob/master/lib/nats/client.ex#L100" class="view-source" rel="help" title="View Source">
+      <a href="https://github.com/nats-io/elixir-nats/blob/v0.1.5/lib/nats/client.ex#L119" class="view-source" rel="help" title="View Source">
        <i class="icon-code"></i>
      </a>
     
@@ -228,14 +228,14 @@
     
   </section>
 </div>
-<div class="detail" id="subscribe/4">
+<div class="detail" id="unsub/3">
   <div class="detail-header">
-    <a href="#subscribe/4" class="detail-link" title="Link to this function">
+    <a href="#unsub/3" class="detail-link" title="Link to this function">
       <i class="icon-link"></i>
     </a>
-    <span class="signature">subscribe(self, who, subject, queue)</span>
+    <span class="signature">unsub(self, ref, afterReceiving \\ nil)</span>
       
-      <a href="https://github.com/nats-io/elixir-nats/blob/master/lib/nats/client.ex#L101" class="view-source" rel="help" title="View Source">
+      <a href="https://github.com/nats-io/elixir-nats/blob/v0.1.5/lib/nats/client.ex#L122" class="view-source" rel="help" title="View Source">
        <i class="icon-code"></i>
      </a>
     
