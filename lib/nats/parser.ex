@@ -218,5 +218,5 @@ defmodule Nats.Parser do
   end
   defp encode1({:unsub, sid, nil}), do: ["UNSUB ", sid]
   defp encode1({:unsub, sid, afterReceiving}),
-    do: ["UNSUB ", sid, " ", afterReceiving]
+    do: ["UNSUB ", sid, " ", to_string(afterReceiving)]
 end
