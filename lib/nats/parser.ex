@@ -189,44 +189,34 @@ defmodule Nats.Parser do
   end
   @endverb "\r\n"
   def encode(mesg) do
-    encode1(mesg) <> @endverb
+    [encode1(mesg), @endverb]
   end
-  defp encode1({:ok}) do <<"+OK">> end
-  defp encode1({:ping}) do <<"PING">> end
-  defp encode1({:pong}) do <<"PONG">> end
-  defp encode1({:err, msg}) do <<"-ERR ">> <> msg end
-  defp encode1({:info, json}) do <<"INFO ">> <> to_json(json) end
-  defp encode1({:connect, json}) do <<"CONNECT ">> <> to_json(json) end
+  defp encode1({:ok}) do "+OK" end
+  defp encode1({:ping}) do "PING" end
+  defp encode1({:pong}) do "PONG" end
+  defp encode1({:err, msg}) do ["-ERR ", msg] end
+  defp encode1({:info, json}) do ["INFO ", to_json(json)] end
+  defp encode1({:connect, json}) do ["CONNECT ", to_json(json)] end
   defp encode1({:msg, sub, sid, nil, what}) do
-    <<"MSG ">> <> sub <>
-      <<32>> <> sid <>
-      <<32>> <> to_string(byte_size(what)) <> @endverb <> what
+    ["MSG ", sub, " ", sid, " ", to_string(byte_size(what)), @endverb, what]
   end
   defp encode1({:msg, sub, sid, ret, what}) do
-    <<"MSG ">> <> sub <>
-      <<32>> <> sid <>
-      <<32>> <> ret <>
-      <<32>> <> to_string(byte_size(what)) <> @endverb <> what
+    ["MSG ", sub, " ", sid, " ", ret, " ", to_string(byte_size(what)),
+     @endverb, what]
   end
   defp encode1({:pub, sub, nil, what}) do
-    <<"PUB ">> <> sub <> 
-      <<32>> <> to_string(byte_size(what)) <> @endverb <> what
+    ["PUB ", sub, " ", to_string(byte_size(what)), @endverb, what]
   end
   defp encode1({:pub, sub, reply, what}) do
-    <<"PUB ">> <> sub <> 
-      <<32>> <> reply <>
-      <<32>> <> to_string(byte_size(what)) <> @endverb <> what
+    ["PUB ", sub, " ", reply, " ", to_string(byte_size(what)), @endverb, what]
   end
   defp encode1({:sub, subject, nil, sid}) do
-    <<"SUB ">> <> subject <> <<32>> <> sid
+    ["SUB ", subject, " ", sid]
   end
   defp encode1({:sub, subject, queue, sid}) do
-    <<"SUB ">> <> subject <> <<32>> <> queue <> <<32>> <> sid
+    ["SUB ", subject, " ", queue, " ", sid]
   end
-  defp encode1({:unsub, sid, nil}) do
-    <<"UNSUB ">> <> sid
-  end
-  defp encode1({:unsub, sid, afterReceiving}) do
-    <<"UNSUB ">> <> sid <> <<32>> <> afterReceiving
-  end
+  defp encode1({:unsub, sid, nil}), do: ["UNSUB ", sid]
+  defp encode1({:unsub, sid, afterReceiving}),
+    do: ["UNSUB ", sid, " ", afterReceiving]
 end
