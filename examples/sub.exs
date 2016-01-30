@@ -23,6 +23,7 @@ IO.puts "starting NATS nats link..."
 {:ok, pid} = Client.start_link
 receive do after 500 -> true end
 IO.puts "subscribing..."
-Client.subscribe(pid, self(), subject_pat);
+ref = Client.sub(pid, self(), subject_pat);
 Sub.receive_loop(pid)
+Client.unsub(pid, ref)
 IO.puts "exiting..."

@@ -15,8 +15,8 @@ defmodule Nats.PubsubTest do
   test "Publish some messages..." do
     subject = "TheSubject"
     {:ok, con} = Client.start_link
-    :ok = Client.subscribe(con, self(), subject)
-    :ok = Client.subscribe(con, self(), ">")
+    {:ok, ref1} = Client.sub(con, self(), subject)
+    {:ok, ref2} = Client.sub(con, self(), ">")
     Client.pub(con, subject, "1: hello")
     Client.pub(con, subject, "2: NATS")
     Client.pub(con, subject, "3: world")
@@ -25,6 +25,9 @@ defmodule Nats.PubsubTest do
     Client.pub(con, subject <> subject, "6: 6")
     # 6 messages + the three we match twice on our wildcard
     assert 9 == receive_loop(con, 0)
-#    Client.unsub(con, sub_subject)
+    :ok = Client.unsub(con, ref1)
+    {:error, _rest} = Client.unsub(con, ref1)
+    :ok = Client.unsub(con, ref2)
+    {:error, _rest} = Client.unsub(con, ref2)
   end
 end

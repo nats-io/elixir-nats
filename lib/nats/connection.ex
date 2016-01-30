@@ -30,6 +30,7 @@ defmodule Nats.Connection do
     state = %{state |
               worker: worker,
               opts: opts,
+              ps: nil,
               log_header: "NATS: #{inspect(self())}: "
              }
     debug_log state, "starting link"
@@ -68,9 +69,9 @@ defmodule Nats.Connection do
   def info(self, map), do: (send self, {:info, map}; :ok)
   def connect(self, map), do: (send self, {:connect, map}; :ok)
   def error(self, msg), do: (send self, {:err, msg}; :ok)
-  def subscribe(self, subject), do: subscribe(self, subject, nil, subject)
-  def subscribe(self, subject, sid), do: subscribe(self, subject, nil, sid)
-  def subscribe(self, subject, queue, sid) do
+  def sub(self, subject), do: sub(self, subject, nil, subject)
+  def sub(self, subject, sid), do: sub(self, subject, nil, sid)
+  def sub(self, subject, queue, sid) do
     send self, {:sub, subject, queue, sid}
     :ok
   end
@@ -110,6 +111,7 @@ defmodule Nats.Connection do
   defp handle_packet(state, packet) do
     debug_log state, ["received packet", packet]
     pres = Nats.Parser.parse(state.ps, packet)
+    debug_log state, ["parsed packet", pres]
     case pres do
       {:ok, msg, rest, nps} ->
         debug_log state, ["parsed packet", msg]
@@ -117,6 +119,9 @@ defmodule Nats.Connection do
           {:noreply, ns } -> handle_packet(ns, rest)
           other -> other
         end
+      {:cont, howmany, nps} ->
+        debug_log state, ["partial packet", howmany]
+        {:noreply, %{state | ps: nps}}
       other -> nats_err(state, "invalid parser result: #{inspect(other)}")
     end
   end
@@ -131,6 +136,7 @@ defmodule Nats.Connection do
       {:err, why} -> nats_err(state, why)
       {:msg, sub, sid, rep, what} -> nats_msg(state, sub, sid, rep, what)
       {:pub, sub, rep, what} -> nats_pub(state, sub, rep, what)
+      {:unsub, sid, howMany} -> nats_unsub(state, sid, howMany)
       _ -> nats_err(state, "received bad NATS verb: -> #{inspect(msg)}")
     end
   end
@@ -213,6 +219,10 @@ defmodule Nats.Connection do
   end
   defp nats_pub(state = %{state: :connected}, sub, ret, body) do
     debug_log state, ["received PUB", sub, ret, body]
+    {:noreply, state}
+  end
+  defp nats_unsub(state = %{state: :connected}, sid, howMany) do
+    debug_log state, ["received UNSUB", sid, howMany]
     {:noreply, state}
   end
 end
