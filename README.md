@@ -13,9 +13,13 @@ To use the framework in your project, add the following to your `mix.exs`:
 
 ```elixir
 defp deps do
+    # for github
     [{:nats, git: "https://github.com/nats-io/elixir-nats.git"}]
+    # for hex (forthcoming)
+    [{:natsio, "~> 0.1.5"}]
 end
 ```
+
 
 ## To build and/or test from sources
 
@@ -32,7 +36,6 @@ To run the examples:
 ```sh
 $ mix run examples/sub.exs
 $ mix run examples/pub.exs
-$ mix bench --duration 30
 ```
 
 The default NATS configuration looks for a [gnatsd](https://github.com/nats-io/gnatsd) instance running on the default port of 4222 on 127.0.0.1.
@@ -55,7 +58,7 @@ use Mix.Config
 
 # debug will log most everything
 # info prints connection lifecycle events
-# error prints errors ;-)
+# error prints errors
 config :logger, level: :debug
 ```
 
@@ -74,7 +77,8 @@ $ open docs/index.html
 $ cat examples/*.exs
 ```
 
-## [License](LICENSE)
+## License
+
+[License](LICENSE)
 
 Copyright 2016 Apcera Inc. All rights reserved. 
-

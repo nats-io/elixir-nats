@@ -22,7 +22,7 @@ defmodule Nats.Mixfile do
      deps: deps,
      name: @name,
      docs: [extras: ["README.md"], main: "readme",
-            source_ref: "v#{@version}", source_url: @git_url],
+            source_url: @git_url],
      test_coverage: [tool: ExCoveralls],
      preferred_cli_env: ["coveralls": :test, "coveralls.detail":
                          :test, "coveralls.post": :test]]
@@ -35,7 +35,7 @@ defmodule Nats.Mixfile do
   defp deps do
     [{:exrm, "~> 0.18.8", only: :dev},
      {:excoveralls, "~> 0.4.5", only: :test},
-     {:benchfella, "~> 0.3.1"}, #only: :dev},
+     {:benchfella, "~> 0.3.1", only: :dev},
      {:earmark, "~> 0.2.1", only: :dev},
      {:ex_doc, "~> 0.11.4", only: :dev}]
   end
