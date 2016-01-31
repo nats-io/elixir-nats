@@ -2,63 +2,31 @@
 # this is somewhat generated. don't touch.
 defmodule Nats.ParserTest do
   use ExUnit.Case, async: true
+  import TestHelper
 
   defp encode(x),             do: Enum.join(Nats.Parser.encode(x), "")
   defp parse(binary),         do: Nats.Parser.parse(binary)
   defp parse(state, binary),  do: Nats.Parser.parse(state, binary)
 
-  test "PING/PONG/OK/ERR parsing" do
-    {:ok, verb, "", _}  = parse("PING\r\n")
-    assert verb == {:ping}
-
-    out = encode(verb)
-
-    assert out == "PING\r\n"
-
-    {:ok, verb, "", _} = parse("PONG\r\n")
-    assert verb == {:pong}
-
-    out = encode(verb)
-    assert out == "PONG\r\n"
-
-    {:ok, verb, "", _} = parse("+OK\r\n")
-    assert verb == {:ok}
-
-    out = encode(verb)
-    assert out == "+OK\r\n"
-
-    {:ok, verb, "", _} = parse("-ERR abc\r\n")
-    assert verb == {:err, "abc"}
-
-    out = encode(verb)
-    assert out == "-ERR abc\r\n"
+   test "PING/PONG/OK/ERR parsing" do
+    assert_verb_parse_encode("PING\r\n", {:ping})
+    assert_verb_parse_encode("PONG\r\n", {:pong})
+    assert_verb_parse_encode("+OK\r\n", {:ok})
+    assert_verb_parse_encode("-ERR abc\r\n", {:err, "abc"})
+    assert_verb_parse_encode("-ERR hello world\r\n", {:err, "hello world"})
 
     # missing arg...
-    {:error, _details, _} = parse("-ERR\r\n")
-    #  IO.puts details
-    {:ok, verb, "", _} = parse("-ERR hello world\r\n")
-    assert verb == {:err, "hello world"}
+    assert_parse_error("-ERR\r\n")
   end
 
   test "INFO/CONNECT parsing" do
+    assert_parse_error("INFO \r\n")
+    assert_parse_error("INFO \"false\" \r\n")
+    assert_parse_error("INFO false \r\n")
+    assert_parse_error("INFO \"FFFF\" \r\n")
+    assert_parse_error("INFO 456 \r\n")
+    assert_parse_error("INFO true\r\n")
 
-    { v, _rest, _ } = parse("INFO \r\n")
-    assert v == :error
-
-    { v, _rest, _ } = parse("INFO \"false\" \r\n")
-    assert v == :error
-
-    { v, _rest, _ } = parse("INFO false \r\n")
-    assert v == :error
-
-    { v, _rest, _ } = parse("INFO \"FFFF\" \r\n")
-    assert v == :error
-
-    { v, _rest, _ } = parse("INFO 456 \r\n")
-    assert v == :error
-
-    { v, _rest, _ } = parse("INFO true\r\n")
-    assert v == :error
 
     {:ok, { v, _rest}, "", _} = parse("INFO {\"key\":true}\r\n")
     assert v == :info
@@ -86,10 +54,10 @@ defmodule Nats.ParserTest do
     assert v == :connect
     #  IO.puts inspect(_rest)
 
-    {:error, _, _} = parse("INFO []\r\n")
-    {:error, _, _} = parse("INFO [\r\n")
-    {:error, _, _} = parse("INFO @\r\n")
-    {:error, _, _} = parse("INFO [false, true,false,]\r\n")
+    assert_parse_error("INFO []\r\n")
+    assert_parse_error("INFO [\r\n")
+    assert_parse_error("INFO @\r\n")
+    assert_parse_error("INFO [false, true,false,]\r\n")
 
 
     {:cont, _howmany, state} = parse("CON")
@@ -98,7 +66,7 @@ defmodule Nats.ParserTest do
     {:ok, _, "+OK\r\n", _} = parse("PUB S S 1\r\n1\r\n+OK\r\n")
     {:ok, _, "", _} = parse("PUB S S 1\r\n1\r\n")
 
-    {:error, _, _} = parse("PUB S S 1\r\n1\rZ+OK\r\n")
+    assert_parse_error("PUB S S 1\r\n1\rZ+OK\r\n")
 
 
     {:ok, {verb, json}, "", _} =
@@ -186,23 +154,17 @@ defmodule Nats.ParserTest do
     { v, _rest, _ } = parse("PUB subj ret -1\r\n")
     assert v == :error
 
-    { v, _rest, _ } = parse("PUB sub ret zz\r\n")
-    assert v == :error
-    { v, _rest, _ } = parse("PUB sub zz\r\n")
-    assert v == :error
-    { v, _rest, _ } = parse("PUB zz\r\n")
-    assert v == :error
-    { v, _rest, _ } = parse("PUB \r\n")
-    assert v == :error
+    assert_parse_error("PUB sub ret zz\r\n")
+    assert_parse_error("PUB sub zz\r\n")
+    assert_parse_error("PUB zz\r\n")
+    assert_parse_error("PUB \r\n")
 
     { v, _rest, _ } = parse("PUB sub ret 0\r\n")
     assert v == :cont
     { v, _rest, _ } = parse("PUB sub 0\r\n")
     assert v == :cont
-    { v, _rest, _ } = parse("PUB 0\r\n")
-    assert v == :error
-    { v, _rest, _ } = parse("PUB \r\n")
-    assert v == :error
+    assert_parse_error("PUB 0\r\n")
+    assert_parse_error("PUB \r\n")
 
     { :ok, pub, _, _ } = parse("PUB S 0\r\n\r\n")
     res = encode(pub)
@@ -228,16 +190,11 @@ defmodule Nats.ParserTest do
     out = encode(verb)
     assert out == "MSG subj sid ret 4\r\nnats\r\n"
 
-    { v, _rest, _ } = parse("MSG subj sid ret bad\r\n")
-    assert v == :error
-    { v, _rest, _ } = parse("MSG subj sid ret -1\r\n")
-    assert v == :error
-    { v, _rest, _ } = parse("MSG subj zz\r\n")
-    assert v == :error
-    { v, _rest, _ } = parse("MSG zz\r\n")
-    assert v == :error
-    { v, _rest, _ } = parse("MSG \r\n")
-    assert v == :error
+    assert_parse_error("MSG subj sid ret bad\r\n")
+    assert_parse_error("MSG subj sid ret -1\r\n")
+    assert_parse_error("MSG subj zz\r\n")
+    assert_parse_error("MSG zz\r\n")
+    assert_parse_error("MSG \r\n")
 
     { :ok, msg, _, _ } = parse("MSG S s 0\r\n\r\n")
     res = encode(msg)
@@ -249,12 +206,9 @@ defmodule Nats.ParserTest do
 
     { v, _rest, _ } = parse("MSG sub ret 0\r\n")
     assert v == :cont
-    { v, _rest, _ } = parse("MSG sub 0\r\n")
-    assert v == :error
-    { v, _rest, _ } = parse("MSG 0\r\n")
-    assert v == :error
-    { v, _rest, _ } = parse("MSG \r\n")
-    assert v == :error
+    assert_parse_error("MSG sub 0\r\n")
+    assert_parse_error("MSG 0\r\n")
+    assert_parse_error("MSG \r\n")
   end
 
   test "continuation testing to address GH-18" do
