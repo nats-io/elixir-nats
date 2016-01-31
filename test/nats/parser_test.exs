@@ -28,31 +28,41 @@ defmodule Nats.ParserTest do
     assert_parse_error("INFO true\r\n")
 
 
-    {:ok, { v, _rest}, "", _} = parse("INFO {\"key\":true}\r\n")
-    assert v == :info
-    #  IO.puts inspect(_rest)
+    assert_parses(
+      binary:   "INFO {\"key\":true}\r\n",
+      expected: {:info, %{"key" => true}},
+      encoded:  "INFO {\"key\": true}\r\n",
+    )
 
-    to_p = "INFO { \"key\":true, \"embed\": {\"a\": [\"b\",\"c\", 123] } }\r\n"
-    {:ok, { v, _rest }, "", _} = parse(to_p)
-    #  IO.puts inspect(_rest)
-    assert v == :info
+    assert_parses(
+      binary:   "INFO { \"key\":true, \"embed\": {\"a\": [\"b\",\"c\", 123] } }\r\n",
+      expected: {:info, %{"embed" => %{"a" => ["b", "c", 123]}, "key" => true}},
+      encoded:  "INFO {\"embed\": {\"a\": [\"b\", \"c\", 123]}, \"key\": true}\r\n",
+    )
 
-    {:ok, v, "", _} = parse("INFO {}\r\n")
-    out = encode(v)
-    assert out == "INFO {}\r\n"
+    assert_parses(
+      binary:   "INFO {}\r\n",
+      expected: {:info, %{}},
+      encoded:  "INFO {}\r\n",
+    )
 
-    {:ok, v, "", _} = parse("INFO { \"key\":true}\r\n")
-    out = encode(v)
-    assert out == "INFO {\"key\": true}\r\n"
+    assert_parses(
+      binary:   "INFO { \"key\":true}\r\n",
+      expected: {:info, %{"key" => true}},
+      encoded:  "INFO {\"key\": true}\r\n",
+    )
 
-    {:ok, v, "", _} =
-      parse("INFO { \"k1\":true, \"k2\": false}\r\n")
-    out = encode(v)
-    assert out == "INFO {\"k1\": true, \"k2\": false}\r\n"
+    assert_parses(
+      binary:   "INFO { \"k1\":true, \"k2\": false}\r\n",
+      expected: {:info, %{"k1" => true, "k2" => false}},
+      encoded:  "INFO {\"k1\": true, \"k2\": false}\r\n",
+    )
 
-    {:ok, {v, _rest}, "", _} = parse("CONNECT {\"key\":true}\r\n")
-    assert v == :connect
-    #  IO.puts inspect(_rest)
+    assert_parses(
+      binary:   "CONNECT {\"key\":true}\r\n",
+      expected: {:connect, %{"key" => true}},
+      encoded:  "CONNECT {\"key\": true}\r\n",
+    )
 
     assert_parse_error("INFO []\r\n")
     assert_parse_error("INFO [\r\n")
@@ -69,126 +79,128 @@ defmodule Nats.ParserTest do
     assert_parse_error("PUB S S 1\r\n1\rZ+OK\r\n")
 
 
-    {:ok, {verb, json}, "", _} =
-      parse("INFO {\"a\":{\"b\":{\"c\":\"zebra\"}}}\r\n")
-    #  IO.puts inspect(rest)
-    assert verb == :info
-    assert json["a"]["b"]["c"] == "zebra"
+    assert_parses(
+      binary:   "INFO {\"a\":{\"b\":{\"c\":\"zebra\"}}}\r\n",
+      expected: {:info, %{"a" => %{"b" => %{"c" => "zebra"}}}},
+      encoded:  "INFO {\"a\": {\"b\": {\"c\": \"zebra\"}}}\r\n",
+    )
 
-    {:ok, verb, "", _} =
-      parse("INFO {\"a\": [true,false,null,\"abc\",[1],2.2,[]]}\r\n")
-    _out = encode(verb)
-#    IO.puts "NATS: verb -> #{inspect(verb)}"
-#    IO.puts "NATS: out ->  #{inspect(out)}"
+    assert_parses(
+      binary:   "INFO {\"a\": [true,false,null,\"abc\",[1],2.2,[]]}\r\n",
+      expected: {:info, %{"a" => [true, false, nil, "abc", [1], 2.2, []]}},
+      encoded:  "INFO {\"a\": [true, false, null, \"abc\", [1], 2.2, []]}\r\n",
+    )
 
-    {:ok, v, "", _} =
-      parse("INFO {\"a\":{\"b\":{\"c\":\"zebra\"}}}\r\n")
-    _out = encode(v)
+    assert_parses(
+      binary:   "INFO {\"a\":{\"b\":{\"c\":\"zebra\"}}}\r\n",
+      expected: {:info, %{"a" => %{"b" => %{"c" => "zebra"}}}},
+      encoded:  "INFO {\"a\": {\"b\": {\"c\": \"zebra\"}}}\r\n",
+    )
 
-    {:ok, v, "", _} =
-      parse("CONNECT {\"a\":{\"b\":{\"c\":\"zebra\"}}}\r\n")
-    _out = encode(v)
+    assert_parses(
+      binary:   "CONNECT {\"a\":{\"b\":{\"c\":\"zebra\"}}}\r\n",
+      expected: {:connect, %{"a" => %{"b" => %{"c" => "zebra"}}}},
+      encoded:  "CONNECT {\"a\": {\"b\": {\"c\": \"zebra\"}}}\r\n",
+    )
   end
 
   test "UNSUB parsing" do
-    {:ok, rest, "", _} =  parse("UNSUB sid\r\n")
-    assert rest == {:unsub, "sid", nil}
-    out = encode(rest)
-    assert out == "UNSUB sid\r\n"
-
-    { v, rest, "", _ } = parse("UNSUB sid 10\r\n")
-    assert v == :ok
-    assert rest == {:unsub, "sid", 10}
-    out = encode(rest)
-    assert out == "UNSUB sid 10\r\n"
-
-    { v, _rest, _ } = parse("UNSUB sid bad\r\n")
-    assert v == :error
+    assert_parses(
+      binary:   "UNSUB sid\r\n",
+      expected: {:unsub, "sid", nil},
+    )
+    assert_parses(
+      binary:   "UNSUB sid 10\r\n",
+      expected: {:unsub, "sid", 10},
+    )
+    assert_parse_error("UNSUB sid bad\r\n")
   end
 
   test "SUB parsing" do
-    {:ok, verb, "", _} = parse("SUB subj sid\r\n")
-    assert verb == {:sub, "subj", nil, "sid"}
-    out = encode(verb)
-    assert out == "SUB subj sid\r\n"
+    assert_parse_error("SUB bad\r\n")
 
+    assert_parses(
+      binary:   "SUB subj sid\r\n",
+      expected: {:sub, "subj", nil, "sid"},
+    )
 
-    {:ok, verb, "", _} = parse("SUB subj q sid\r\n")
-    assert verb == {:sub, "subj", "q", "sid"}
+    assert_parses(
+      binary:   "SUB subj q sid\r\n",
+      expected: {:sub, "subj", "q", "sid"},
+    )
 
-    out = encode(verb)
-    assert out == "SUB subj q sid\r\n"
+    assert_parses(
+      binary:   "SUB S s\r\n",
+      expected: {:sub, "S", nil, "s"},
+    )
 
-    { v, _rest, _ } = parse("SUB bad\r\n")
-    assert v == :error
-
-    { :ok, sub, _, _ } = parse("SUB S s\r\n")
-    res = encode(sub)
-    assert res == <<"SUB S s\r\n">>
-
-    { :ok, sub, _, _ } = parse("SUB S Q s\r\n")
-    res = encode(sub)
-    assert res == <<"SUB S Q s\r\n">>
+    assert_parses(
+      binary:   "SUB S Q s\r\n",
+      expected: {:sub, "S", "Q", "s"},
+    )
   end
 
   test "PUB parsing" do
-    {:ok, verb, "", _} =  parse("PUB subj 0\r\n\r\n")
-    assert verb == {:pub, "subj", nil, ""}
+    assert_parses(
+      binary:   "PUB subj 0\r\n\r\n",
+      expected: {:pub, "subj", nil, ""},
+    )
+    assert_parses(
+      binary:   "PUB subj 4\r\n1234\r\n",
+      expected: {:pub, "subj", nil, "1234"},
+    )
+    assert_parses(
+      binary:   "PUB subj ret 4\r\nnats\r\n",
+      expected: {:pub, "subj", "ret", "nats"},
+    )
+    assert_parses(
+      binary:   "PUB subj ret 2\r\nio\r\n",
+      expected: {:pub, "subj", "ret", "io"},
+    )
+    assert_parses(
+      binary:   "PUB subj ret 5\r\nnats!\r\n",
+      expected: {:pub, "subj", "ret", "nats!"},
+    )
+    assert_parses(
+      binary:   "PUB subj ret 5\r\nnats!\r\n",
+      expected: {:pub, "subj", "ret", "nats!"},
+    )
+    assert_parses(
+      binary:   "PUB subj ret 10\r\nhello nats\r\n",
+      expected: {:pub, "subj", "ret", "hello nats"},
+    )
 
-    out = encode({:pub, "subj", nil, "1234"})
-    assert out == "PUB subj 4\r\n1234\r\n"
-
-    {:ok, verb, "", _} = parse("PUB subj ret 4\r\nnats\r\n")
-    assert verb == {:pub, "subj", "ret", "nats"}
-
-
-    out = encode({:pub, "subj", "ret", "io"})
-    assert out == "PUB subj ret 2\r\nio\r\n"
-
-    {:ok, verb, "", _} = parse("PUB subj ret 5\r\nnats!\r\n")
-    assert verb == {:pub, "subj", "ret", "nats!"}
-
-    {:ok, verb, "", _} = parse("PUB subj ret 10\r\nhello nats\r\n")
-    assert verb == {:pub, "subj", "ret", "hello nats"}
-
-    { v, _rest, _ } = parse("PUB subj ret -1\r\n")
-    assert v == :error
-
+    assert_parse_error("PUB subj ret -1\r\n")
     assert_parse_error("PUB sub ret zz\r\n")
     assert_parse_error("PUB sub zz\r\n")
     assert_parse_error("PUB zz\r\n")
     assert_parse_error("PUB \r\n")
 
-    { v, _rest, _ } = parse("PUB sub ret 0\r\n")
-    assert v == :cont
-    { v, _rest, _ } = parse("PUB sub 0\r\n")
-    assert v == :cont
+    assert {:cont, 2, {_, "", {0, {:pub, "sub", "ret", 0}, ""}}} = parse("PUB sub ret 0\r\n")
+    assert {:cont, 2, {_, "", {0, {:pub, "sub", nil, 0}, ""}}}   = parse("PUB sub 0\r\n")
+
     assert_parse_error("PUB 0\r\n")
     assert_parse_error("PUB \r\n")
 
-    { :ok, pub, _, _ } = parse("PUB S 0\r\n\r\n")
-    res = encode(pub)
-    assert res == <<"PUB S 0\r\n\r\n">>
-
-    { :ok, pub, _, _ } = parse("PUB S R 0\r\n\r\n")
-    res = encode(pub)
-    assert res == <<"PUB S R 0\r\n\r\n">>
+    assert_parses(
+      binary:   "PUB S 0\r\n\r\n",
+      expected: {:pub, "S", nil, ""},
+    )
+    assert_parses(
+      binary:   "PUB S R 0\r\n\r\n",
+      expected: {:pub, "S", "R", ""},
+    )
   end
 
   test "MSG parsing" do
-    v = parse("MSG subj sid 0\r\n\r\n")
-    #  IO.puts inspect(v)
-    {:ok, verb, "", _} = v
-    assert verb == {:msg, "subj", "sid", nil, ""}
-
-    out = encode(verb)
-    assert out == "MSG subj sid 0\r\n\r\n"
-
-    {:ok, verb, "", _} = parse("MSG subj sid ret 4\r\nnats\r\n")
-    assert verb == {:msg, "subj", "sid", "ret", "nats"}
-
-    out = encode(verb)
-    assert out == "MSG subj sid ret 4\r\nnats\r\n"
+    assert_parses(
+      binary:   "MSG subj sid 0\r\n\r\n",
+      expected: {:msg, "subj", "sid", nil, ""},
+    )
+    assert_parses(
+      binary:   "MSG subj sid ret 4\r\nnats\r\n",
+      expected: {:msg, "subj", "sid", "ret", "nats"},
+    )
 
     assert_parse_error("MSG subj sid ret bad\r\n")
     assert_parse_error("MSG subj sid ret -1\r\n")
@@ -196,16 +208,17 @@ defmodule Nats.ParserTest do
     assert_parse_error("MSG zz\r\n")
     assert_parse_error("MSG \r\n")
 
-    { :ok, msg, _, _ } = parse("MSG S s 0\r\n\r\n")
-    res = encode(msg)
-    assert res == <<"MSG S s 0\r\n\r\n">>
+    assert_parses(
+      binary:   "MSG S s 0\r\n\r\n",
+      expected: {:msg, "S", "s", nil, ""},
+    )
+    assert_parses(
+      binary:   "MSG S s R 0\r\n\r\n",
+      expected: {:msg, "S", "s", "R", ""},
+    )
 
-    { :ok, msg, _, _ } = parse("MSG S s R 0\r\n\r\n")
-    res = encode(msg)
-    assert res == <<"MSG S s R 0\r\n\r\n">>
+    assert {:cont, 2, {_, "", {0, {:msg, "sub", "ret", nil, 0}, ""}}} = parse("MSG sub ret 0\r\n")
 
-    { v, _rest, _ } = parse("MSG sub ret 0\r\n")
-    assert v == :cont
     assert_parse_error("MSG sub 0\r\n")
     assert_parse_error("MSG 0\r\n")
     assert_parse_error("MSG \r\n")

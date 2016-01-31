@@ -21,4 +21,21 @@ defmodule TestHelper do
       assert out == binary
     end
   end
+
+  defmacro assert_parses([binary: b, expected: expected]) do
+    quote do
+      assert_parses([binary: unquote(b), expected: unquote(expected), encoded: unquote(b) ])
+    end
+  end
+
+  defmacro assert_parses([binary: binary, expected: expected, encoded: encoded]) do
+    quote do
+      binary   = unquote(binary)
+      expected = unquote(expected)
+      encoded  = unquote(encoded)
+      {:ok, v, "", _} = Nats.Parser.parse(binary)
+      assert v == expected
+      assert encode(v) == encoded
+    end
+  end
 end
