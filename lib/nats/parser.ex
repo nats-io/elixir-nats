@@ -13,18 +13,19 @@ defmodule Nats.Parser do
   def parse(string), do: parse(init_state, string)
   def parse(nil, string), do: parse(init_state, string)
   def parse({ func, <<>>, state}, string), do: func.(string, state)
-  def parse({ func, buff, state}, string), do: func.(<<buff :: bits,
-                                                     string :: bits>>, state)
-  defp verb(<<"MSG ", rest :: bits>>, _), do: args(rest, [:msg])
-  defp verb(<<"PUB ", rest :: bits>>, _), do: args(rest, [:pub])
-  defp verb(<<"SUB ", rest :: bits>>, _), do: args(rest, [:sub])
-  defp verb(<<"UNSUB ", rest :: bits>>, _), do: args(rest, [:unsub])
-  defp verb(<<"+OK\r\n", rest :: bits>>, _), do: done(rest, :ok)
-  defp verb(<<"PING\r\n", rest :: bits>>, _), do: done(rest, :ping)
-  defp verb(<<"PONG\r\n", rest :: bits>>, _), do: done(rest, :pong)
-  defp verb(<<"CONNECT ", rest :: bits>>, _), do: json(rest, :connect, <<>>)
-  defp verb(<<"INFO ", rest :: bits>>, _), do: json(rest, :info, <<>>)
-  defp verb(<<"-ERR ", rest :: bits>>, _), do: err(rest, <<>>)
+  def parse({ func, buff, state}, string), do: func.(<<buff::bits,
+                                                     string::bits>>,
+                                                     state)
+  defp verb(<<"MSG ", rest::binary>>, _), do: args(rest, [:msg])
+  defp verb(<<"PUB ", rest::binary>>, _), do: args(rest, [:pub])
+  defp verb(<<"SUB ", rest::binary>>, _), do: args(rest, [:sub])
+  defp verb(<<"UNSUB ", rest::binary>>, _), do: args(rest, [:unsub])
+  defp verb(<<"+OK\r\n", rest::binary>>, _), do: simp_done(:ok, rest)
+  defp verb(<<"PING\r\n", rest::binary>>, _), do: simp_done(:ping, rest)
+  defp verb(<<"PONG\r\n", rest::binary>>, _), do: simp_done(:pong, rest)
+  defp verb(<<"CONNECT ", rest::binary>>, _), do: json(rest, :connect, <<>>)
+  defp verb(<<"INFO ", rest::binary>>, _), do: json(rest, :info, <<>>)
+  defp verb(<<"-ERR ", rest::binary>>, _), do: err(rest, <<>>)
   @max_match_len 6 # CONNECT and PING\r\n
   defp verb(what, state) when byte_size(what) < @max_match_len,
     do: cont(&verb/2, state, @max_match_len, what)
@@ -34,49 +35,41 @@ defmodule Nats.Parser do
   end
   
   defp err(<<>>, acc), do: cont(&err/2, acc)
-  defp err(what = <<?\r, _ :: bits>>, acc), do: done(what, [acc, :err])
-  defp err(what = <<?\n, _ :: bits>>, acc), do: done(what, [acc, :err])
-  defp err(<<char, rest :: bits>>, acc), do: err(rest, <<acc::bits, char>>)
-  defp json(<<>>, acc), do: cont(&json/2, acc)
-  defp json(what = <<?\r, _ :: bits>>, verb, acc), do: done(what, [acc, verb])
-  defp json(what = <<?\n, _ :: bits>>, verb, acc), do: done(what, [acc, verb])
-  defp json(<<char, rest :: bits>>, verb, acc),
-    do: json(rest, verb, <<acc :: bits, char>>)
+  defp err(<<char, rest::binary>>, acc)
+    when not char in [?\r, ?\n],
+    do: err(rest, <<acc::binary, char>>)
+  defp err(what, acc), do: done(what, [acc, :err])
+  
+  defp json(<<>>, verb, acc), do: cont(&json(&1, verb, &2), acc)
+  defp json(<<char, rest::binary>>, verb, acc)
+    when not char in [?\r, ?\n],
+    do: json(rest, verb, <<acc::binary, char>>)
+  defp json(what, verb, acc), do: done(what, [acc, verb])
 
   defp args(<<>>, argv), do: cont(&args/2, argv)
-  defp args(what = <<?\r, _ :: bits>>, argv), do: done(what, argv)
-  defp args(what = <<?\n, _ :: bits>>, argv), do: done(what,  argv)
-  defp args(<<?\s, rest :: bits>>, argv), do: args(rest, argv)
-  defp args(<<?\t, rest :: bits>>, argv), do: args(rest, argv)
-  defp args(<<first, rest :: bits>>, argv),
-    do: args_arg(rest, <<first>>, argv)
+  defp args(<<?\s, rest::binary>>, argv), do: args(rest, argv)
+  defp args(<<?\t, rest::binary>>, argv), do: args(rest, argv)
+  defp args(<<char, rest::binary>>, argv)
+    when not char in [?\r, ?\n],
+    do: arg(rest, <<char>>, argv)
+  defp args(what, argv), do: done(what, argv)
 
-  # broken out of the above (and below) for continutions
-  defp args_arg(buf, so_far, argv) do
-    case arg(buf, so_far) do
-      {:ok, res, rest} ->
-#        IO.puts "adding res=#{inspect(res)} argv=#{inspect(argv)}"
-        args(rest, [res|argv])
-      {:cont, sofar} -> cont(&(args_arg(&1, &2, argv)), sofar)
-      other -> other
-    end
-  end
-  
-  defp arg(<<>>, acc), do: {:cont, acc}
-  defp arg(rest = <<?\s, _ :: bits>>, acc), do: {:ok, acc, rest}
-  defp arg(rest = <<?\t, _ :: bits>>, acc), do: {:ok, acc, rest}
-  defp arg(rest = <<?\r, _ :: bits>>, acc), do: {:ok, acc, rest}
-  defp arg(rest = <<?\n, _ :: bits>>, acc), do: {:ok, acc, rest}
-  defp arg(<<char, rest :: bits>>, acc),
-    do: arg(rest, <<acc :: bits, char>>)
-
+  defp arg(<<>>, acc, argv), do: cont(&(arg(&1, acc, &2)), argv)
+  defp arg(<<ch, rest::binary>>, acc, argv)
+    when ch in[?\s, ?\t], do: args(rest, [acc|argv])
+  defp arg(<<char, rest::binary>>, acc, argv)
+    when not char in [?\r, ?\n],
+    do: arg(rest, <<acc::binary, char>>, argv)
+  defp arg(rest, acc, argv), do: args(rest, [acc|argv])
+ 
   # We're at the end of the body
-  defp body(<<"\r\n", rest::bits>>, 0, verb, acc),
+  defp body(<<"\r\n", rest::binary>>, 0, verb, acc),
     do: {:ok, put_elem(verb, tuple_size(verb) - 1, acc), rest, init_state}
   # We have < 2 bytes in our input, but haven't finished the body
-  defp body(buff, nleft, verb, acc) when byte_size(buff) < 2,
-  do: cont(&body_cont/2, {nleft, verb, acc},
-           nleft + (2 - byte_size(buff)), buff)
+  defp body(buff, nleft, verb, acc)
+    when byte_size(buff) < 2,
+    do: cont(&body(&1, nleft, verb, &2), acc,
+             nleft + (2 - byte_size(buff)), buff)
   # We're at the end of the body, but its malformed (missing `\\r\\n`)
   defp body(_rest, 0, verb, _acc),
     do: parse_err("malformed body trailer for: #{inspect(verb)}")
@@ -85,25 +78,22 @@ defmodule Nats.Parser do
     rest_size = byte_size(rest)
     to_read = min(nleft, rest_size)
 #    IO.puts("body -> #{inspect(nleft)} rest=#{inspect(rest)} acc=#{inspect(acc)}")
-    <<read :: bytes-size(to_read), remainder :: bits>> = rest
-    body(remainder, nleft - to_read, verb, <<acc :: bits, read :: bits>>)
+    <<read::bytes-size(to_read), remainder::binary>> = rest
+    body(remainder, nleft - to_read, verb, <<acc::binary, read::binary>>)
   end
-  defp body_cont(buff, {nleft, verb, acc}), do: body(buff, nleft, verb, acc)
 
-  defp done(rest, verb) when is_atom(verb) do
-    {:ok, {verb}, rest, nil}
-  end
+  defp simp_done(verb, rest), do: {:ok, {verb}, rest, nil}
   defp done(buff, argv) when byte_size(buff) < 2,
     do: cont(&done/2, argv, 2 - byte_size(buff), buff)
-  defp done(<<"\r\n", rest :: bits>>, argv) do
+  defp done(<<"\r\n", rest::binary>>, argv) do
     verb = done1(List.to_tuple(Enum.reverse(argv)))
     case verb do
       {:body, want, real_verb} -> body(rest, want, real_verb, <<>>)
       {:error, _, _} -> verb
-      other -> {:ok, other, rest, init_state(rest)}
+      other -> {:ok, other, rest, init_state}
     end
   end
-  defp done(<<c1, c2, _ :: bits>>, _),
+  defp done(<<c1, c2, _::binary>>, _),
     do: parse_err("invalid trailer `#{c1}#{c2}`")
 
   defp parse_json(verb, json_str) do
