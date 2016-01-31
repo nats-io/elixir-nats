@@ -25,12 +25,11 @@ defmodule Nats.Parser do
   defp verb(<<"CONNECT ", rest :: bits>>, _), do: json(rest, :connect, <<>>)
   defp verb(<<"INFO ", rest :: bits>>, _), do: json(rest, :info, <<>>)
   defp verb(<<"-ERR ", rest :: bits>>, _), do: err(rest, <<>>)
-
-  defp verb(other, state) when byte_size(other) < @min_lookahead,
-    # FIXME: jam: fail faster...
-    do: cont(&verb/2, state, @min_lookahead, other)
-  defp verb(buff, _) do
-    read = binary_part(buff, 0, min(16, byte_size(buff)))
+  @max_match_len 6 # CONNECT and PING\r\n
+  defp verb(what, state) when byte_size(what) < @max_match_len,
+    do: cont(&verb/2, state, @max_match_len, what)
+  defp verb(what, _) do
+    read = binary_part(what, 0, min(16, byte_size(what)))
     parse_err("invalid protocol bytes: #{inspect(read)}")
   end
   
@@ -55,29 +54,32 @@ defmodule Nats.Parser do
   # broken out of the above (and below) for continutions
   defp args_arg(buf, so_far, argv) do
     case arg(buf, so_far) do
-      {:ok, res, rest} -> args(rest, [res|argv])
+      {:ok, res, rest} ->
+#        IO.puts "adding res=#{inspect(res)} argv=#{inspect(argv)}"
+        args(rest, [res|argv])
       {:cont, sofar} -> cont(&(args_arg(&1, &2, argv)), sofar)
       other -> other
     end
   end
   
   defp arg(<<>>, acc), do: {:cont, acc}
-  defp arg(<<?\s, rest :: bits>>, acc), do: {:ok, acc, rest}
-  defp arg(<<?\t, rest :: bits>>, acc), do: {:ok, acc, rest}
-  defp arg(what = <<?\r, _ :: bits>>, acc), do: {:ok, acc, what}
-  defp arg(what = <<?\n, _ :: bits>>, acc), do: {:ok, acc, what}
+  defp arg(rest = <<?\s, _ :: bits>>, acc), do: {:ok, acc, rest}
+  defp arg(rest = <<?\t, _ :: bits>>, acc), do: {:ok, acc, rest}
+  defp arg(rest = <<?\r, _ :: bits>>, acc), do: {:ok, acc, rest}
+  defp arg(rest = <<?\n, _ :: bits>>, acc), do: {:ok, acc, rest}
   defp arg(<<char, rest :: bits>>, acc),
     do: arg(rest, <<acc :: bits, char>>)
 
   # We're at the end of the body
   defp body(<<"\r\n", rest::bits>>, 0, verb, acc),
     do: {:ok, put_elem(verb, tuple_size(verb) - 1, acc), rest, init_state}
+  # We have < 2 bytes in our input, but haven't finished the body
+  defp body(buff, nleft, verb, acc) when byte_size(buff) < 2,
+  do: cont(&body_cont/2, {nleft, verb, acc},
+           nleft + (2 - byte_size(buff)), buff)
   # We're at the end of the body, but its malformed (missing `\\r\\n`)
   defp body(_rest, 0, verb, _acc),
     do: parse_err("malformed body trailer for: #{inspect(verb)}")
-  defp body(<<>>, nleft, verb, acc),
-    do: cont(&body_cont/2, {nleft, verb, acc})
-
   # "We have N more bytes to read"
   defp body(rest, nleft, verb, acc) do
     rest_size = byte_size(rest)
@@ -91,7 +93,8 @@ defmodule Nats.Parser do
   defp done(rest, verb) when is_atom(verb) do
     {:ok, {verb}, rest, nil}
   end
-  defp done(buff, argv) when byte_size(buff) < 2, do: cont(&done/2, argv, buff)
+  defp done(buff, argv) when byte_size(buff) < 2,
+    do: cont(&done/2, argv, 2 - byte_size(buff), buff)
   defp done(<<"\r\n", rest :: bits>>, argv) do
     verb = done1(List.to_tuple(Enum.reverse(argv)))
     case verb do

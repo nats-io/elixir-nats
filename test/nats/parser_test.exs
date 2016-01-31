@@ -196,9 +196,9 @@ defmodule Nats.ParserTest do
     assert v == :error
 
     { v, _rest, _ } = Nats.Parser.parse("PUB sub ret 0\r\n")
-    assert v == :error
+    assert v == :cont
     { v, _rest, _ } = Nats.Parser.parse("PUB sub 0\r\n")
-    assert v == :error
+    assert v == :cont
     { v, _rest, _ } = Nats.Parser.parse("PUB 0\r\n")
     assert v == :error
     { v, _rest, _ } = Nats.Parser.parse("PUB \r\n")
@@ -248,13 +248,90 @@ defmodule Nats.ParserTest do
     assert res == <<"MSG S s R 0\r\n\r\n">>
     
     { v, _rest, _ } = Nats.Parser.parse("MSG sub ret 0\r\n")
-    assert v == :error
+    assert v == :cont
     { v, _rest, _ } = Nats.Parser.parse("MSG sub 0\r\n")
     assert v == :error
     { v, _rest, _ } = Nats.Parser.parse("MSG 0\r\n")
     assert v == :error
     { v, _rest, _ } = Nats.Parser.parse("MSG \r\n")
     assert v == :error
+  end
+
+  test "continuation testing to address GH-18" do
+    # Thanks @mindreframer !
+    # See https://github.com/nats-io/elixir-nats/issues/18
+
+    
+    {:cont, _, state} = Nats.Parser.parse("CO")
+    {:ok, {:connect, %{}}, "", _} = Nats.Parser.parse(state, "NNECT {}\r\n")
+    
+    {:cont, _, state} = Nats.Parser.parse("CON")
+    {:ok, {:connect, %{}}, "", _} = Nats.Parser.parse(state, "NECT {}\r\n")
+
+    {:cont, _, state} = Nats.Parser.parse("CONN")
+    {:ok, {:connect, %{}}, "", _} = Nats.Parser.parse(state, "ECT {}\r\n")
+
+    {:cont, _, state} = Nats.Parser.parse("CONNE")
+    {:ok, {:connect, %{}}, "", _} = Nats.Parser.parse(state, "CT {}\r\n")
+
+    {:cont, _, state} = Nats.Parser.parse("CONNE")
+    {:ok, {:connect, %{}}, "", _} = Nats.Parser.parse(state, "CT {}\r\n")
+
+    {:cont, _, state} = Nats.Parser.parse("-E")
+    {:cont, _, state} = Nats.Parser.parse(state, "R")
+    {:cont, _, state} = Nats.Parser.parse(state, "R")
+    {:cont, _, state} = Nats.Parser.parse(state, "")
+    {:cont, _, state} = Nats.Parser.parse(state, " ")
+    {:cont, _, state} = Nats.Parser.parse(state, " ")
+    {:cont, _, state} = Nats.Parser.parse(state, "")
+    msg = "SOME ERROR"
+    {:cont, _, state} = Nats.Parser.parse(state, msg)
+    {:cont, _, state} = Nats.Parser.parse(state, "")
+    {:cont, _, state} = Nats.Parser.parse(state, "\r")
+    {:cont, _, state} = Nats.Parser.parse(state, "")
+    msg = " " <> msg
+    {:ok, {:err, ^msg}, "", _state} = Nats.Parser.parse(state, "\n")
+
+    {:cont, _, state} = Nats.Parser.parse("MSG ")
+    {:cont, _, state} = Nats.Parser.parse(state, "")
+    {:cont, _, state} = Nats.Parser.parse(state, "s")
+    {:cont, _, state} = Nats.Parser.parse(state, "")
+    {:cont, _, state} = Nats.Parser.parse(state, "u")
+    {:cont, _, state} = Nats.Parser.parse(state, "")
+    {:cont, _, state} = Nats.Parser.parse(state, "b")
+    {:cont, _, state} = Nats.Parser.parse(state, "")
+    {:cont, _, state} = Nats.Parser.parse(state, " ")
+    {:cont, _, state} = Nats.Parser.parse(state, " ")
+    {:cont, _, state} = Nats.Parser.parse(state, " SID1.")
+    {:cont, _, state} = Nats.Parser.parse(state, "SID2.")
+    {:cont, _, state} = Nats.Parser.parse(state, "")
+    {:cont, _, state} = Nats.Parser.parse(state, "S")
+    {:cont, _, state} = Nats.Parser.parse(state, "I")
+    {:cont, _, state} = Nats.Parser.parse(state, "D3")
+    {:cont, _, state} = Nats.Parser.parse(state, " ")
+    {:cont, _, state} = Nats.Parser.parse(state, "")
+    {:cont, _, state} = Nats.Parser.parse(state, "\t")
+    {:cont, _, state} = Nats.Parser.parse(state, " \t ")
+    {:cont, _, state} = Nats.Parser.parse(state, "4")
+    {:cont, _, state} = Nats.Parser.parse(state, "")
+    {:cont, _, state} = Nats.Parser.parse(state, " ")
+    {:cont, _, state} = Nats.Parser.parse(state, "\t")
+    {:cont, _, state} = Nats.Parser.parse(state, "")
+    {:cont, _, state} = Nats.Parser.parse(state, "\r")
+    {:cont, _, state} = Nats.Parser.parse(state, "")
+    {:cont, _, state} = Nats.Parser.parse(state, "\n")
+    {:cont, _, state} = Nats.Parser.parse(state, "")
+    {:cont, _, state} = Nats.Parser.parse(state, "")
+    {:cont, _, state} = Nats.Parser.parse(state, "na")
+    {:cont, _, state} = Nats.Parser.parse(state, "")
+    {:cont, _, state} = Nats.Parser.parse(state, "t")
+    {:cont, _, state} = Nats.Parser.parse(state, "")
+    {:cont, _, state} = Nats.Parser.parse(state, "s")
+    {:cont, _, state} = Nats.Parser.parse(state, "")
+    {:cont, _, state} = Nats.Parser.parse(state, "\r")
+    {:cont, _, state} = Nats.Parser.parse(state, "")
+    {:ok, verb, "ABC", _state} = Nats.Parser.parse(state, "\nABC")
+    assert verb === {:msg, "sub", "SID1.SID2.SID3", nil, "nats"}
   end
 end
 
