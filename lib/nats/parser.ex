@@ -13,8 +13,8 @@ defmodule Nats.Parser do
   def parse(string), do: parse(init_state, string)
   def parse(nil, string), do: parse(init_state, string)
   def parse({ func, <<>>, state}, string), do: func.(string, state)
-  def parse({ func, buff, state}, string), do: func.(<<buff::bits,
-                                                     string::bits>>,
+  def parse({ func, buff, state}, string), do: func.(<<buff::binary,
+                                                     string::binary>>,
                                                      state)
   defp verb(<<"MSG ", rest::binary>>, _), do: args(rest, [:msg])
   defp verb(<<"PUB ", rest::binary>>, _), do: args(rest, [:pub])
