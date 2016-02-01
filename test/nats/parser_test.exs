@@ -2,335 +2,302 @@
 # this is somewhat generated. don't touch.
 defmodule Nats.ParserTest do
   use ExUnit.Case, async: true
+  import TestHelper
 
-  defp encode(x) do
-    Enum.join(Nats.Parser.encode(x), "")
-  end
+  defp encode(x),             do: Enum.join(Nats.Parser.encode(x), "")
+  defp parse(binary),         do: Nats.Parser.parse(binary)
+  defp parse(state, binary),  do: Nats.Parser.parse(state, binary)
 
-  test "PING/PONG/OK/ERR parsing" do
-    {:ok, verb, "", _}  = Nats.Parser.parse("PING\r\n")
-    assert verb == {:ping}
-    
-    out = encode(verb)
-    
-    assert out == "PING\r\n"
-    
-    {:ok, verb, "", _} = Nats.Parser.parse("PONG\r\n")
-    assert verb == {:pong}
+   test "PING/PONG/OK/ERR parsing" do
+    assert_verb_parse_encode("PING\r\n", {:ping})
+    assert_verb_parse_encode("PONG\r\n", {:pong})
+    assert_verb_parse_encode("+OK\r\n", {:ok})
+    assert_verb_parse_encode("-ERR abc\r\n", {:err, "abc"})
+    assert_verb_parse_encode("-ERR hello world\r\n", {:err, "hello world"})
 
-    out = encode(verb)
-    assert out == "PONG\r\n"
-    
-    {:ok, verb, "", _} = Nats.Parser.parse("+OK\r\n")
-    assert verb == {:ok}
-
-    out = encode(verb)
-    assert out == "+OK\r\n"
-    
-    {:ok, verb, "", _} = Nats.Parser.parse("-ERR abc\r\n")
-    assert verb == {:err, "abc"}
-
-    out = encode(verb)
-    assert out == "-ERR abc\r\n"
-    
     # missing arg...
-    {:error, _details, _} = Nats.Parser.parse("-ERR\r\n")
-    #  IO.puts details
-    {:ok, verb, "", _} = Nats.Parser.parse("-ERR hello world\r\n")
-    assert verb == {:err, "hello world"}
+    assert_parse_error("-ERR\r\n")
   end
- 
+
   test "INFO/CONNECT parsing" do
-
-    { v, _rest, _ } = Nats.Parser.parse("INFO \r\n")
-    assert v == :error
-
-    { v, _rest, _ } = Nats.Parser.parse("INFO \"false\" \r\n")
-    assert v == :error
-
-    { v, _rest, _ } = Nats.Parser.parse("INFO false \r\n")
-    assert v == :error
-
-    { v, _rest, _ } = Nats.Parser.parse("INFO \"FFFF\" \r\n")
-    assert v == :error
-
-    { v, _rest, _ } = Nats.Parser.parse("INFO 456 \r\n")
-    assert v == :error
-    
-    { v, _rest, _ } = Nats.Parser.parse("INFO true\r\n")
-    assert v == :error
-
-    {:ok, { v, _rest}, "", _} = Nats.Parser.parse("INFO {\"key\":true}\r\n")
-    assert v == :info
-    #  IO.puts inspect(_rest)
-
-    to_p = "INFO { \"key\":true, \"embed\": {\"a\": [\"b\",\"c\", 123] } }\r\n"
-    {:ok, { v, _rest }, "", _} = Nats.Parser.parse(to_p)
-    #  IO.puts inspect(_rest)
-    assert v == :info
-
-    {:ok, v, "", _} = Nats.Parser.parse("INFO {}\r\n")
-    out = encode(v)
-    assert out == "INFO {}\r\n"
-
-    {:ok, v, "", _} = Nats.Parser.parse("INFO { \"key\":true}\r\n")
-    out = encode(v)
-    assert out == "INFO {\"key\": true}\r\n"
-
-    {:ok, v, "", _} =
-      Nats.Parser.parse("INFO { \"k1\":true, \"k2\": false}\r\n")
-    out = encode(v)
-    assert out == "INFO {\"k1\": true, \"k2\": false}\r\n"
-    
-    {:ok, {v, _rest}, "", _} = Nats.Parser.parse("CONNECT {\"key\":true}\r\n")
-    assert v == :connect
-    #  IO.puts inspect(_rest)
-
-    {:error, _, _} = Nats.Parser.parse("INFO []\r\n")
-    {:error, _, _} = Nats.Parser.parse("INFO [\r\n")
-    {:error, _, _} = Nats.Parser.parse("INFO @\r\n")
-    {:error, _, _} = Nats.Parser.parse("INFO [false, true,false,]\r\n")
+    assert_parse_error("INFO \r\n")
+    assert_parse_error("INFO \"false\" \r\n")
+    assert_parse_error("INFO false \r\n")
+    assert_parse_error("INFO \"FFFF\" \r\n")
+    assert_parse_error("INFO 456 \r\n")
+    assert_parse_error("INFO true\r\n")
 
 
-    {:cont, _howmany, state} = Nats.Parser.parse("CON")
-    {:ok, {:connect, %{}}, "", _} = Nats.Parser.parse(state, "NECT {}\r\n")
+    assert_parses(
+      binary:   "INFO {\"key\":true}\r\n",
+      expected: {:info, %{"key" => true}},
+      encoded:  "INFO {\"key\": true}\r\n",
+    )
 
-    {:ok, _, "+OK\r\n", _} = Nats.Parser.parse("PUB S S 1\r\n1\r\n+OK\r\n")
-    {:ok, _, "", _} = Nats.Parser.parse("PUB S S 1\r\n1\r\n")
+    assert_parses(
+      binary:   "INFO { \"key\":true, \"embed\": {\"a\": [\"b\",\"c\", 123] } }\r\n",
+      expected: {:info, %{"embed" => %{"a" => ["b", "c", 123]}, "key" => true}},
+      encoded:  "INFO {\"embed\": {\"a\": [\"b\", \"c\", 123]}, \"key\": true}\r\n",
+    )
 
-    {:error, _, _} = Nats.Parser.parse("PUB S S 1\r\n1\rZ+OK\r\n")
-    
-    
-    {:ok, {verb, json}, "", _} =
-      Nats.Parser.parse("INFO {\"a\":{\"b\":{\"c\":\"zebra\"}}}\r\n")
-    #  IO.puts inspect(rest)
-    assert verb == :info
-    assert json["a"]["b"]["c"] == "zebra"
+    assert_parses(
+      binary:   "INFO {}\r\n",
+      expected: {:info, %{}},
+      encoded:  "INFO {}\r\n",
+    )
 
-    {:ok, verb, "", _} =
-      Nats.Parser.parse("INFO {\"a\": [true,false,null,\"abc\",[1],2.2,[]]}\r\n")
-    _out = encode(verb)
-#    IO.puts "NATS: verb -> #{inspect(verb)}"
-#    IO.puts "NATS: out ->  #{inspect(out)}"
-    
-    {:ok, v, "", _} =
-      Nats.Parser.parse("INFO {\"a\":{\"b\":{\"c\":\"zebra\"}}}\r\n")
-    _out = encode(v)
+    assert_parses(
+      binary:   "INFO { \"key\":true}\r\n",
+      expected: {:info, %{"key" => true}},
+      encoded:  "INFO {\"key\": true}\r\n",
+    )
 
-    {:ok, v, "", _} =
-      Nats.Parser.parse("CONNECT {\"a\":{\"b\":{\"c\":\"zebra\"}}}\r\n")
-    _out = encode(v)
+    assert_parses(
+      binary:   "INFO { \"k1\":true, \"k2\": false}\r\n",
+      expected: {:info, %{"k1" => true, "k2" => false}},
+      encoded:  "INFO {\"k1\": true, \"k2\": false}\r\n",
+    )
+
+    assert_parses(
+      binary:   "CONNECT {\"key\":true}\r\n",
+      expected: {:connect, %{"key" => true}},
+      encoded:  "CONNECT {\"key\": true}\r\n",
+    )
+
+    assert_parse_error("INFO []\r\n")
+    assert_parse_error("INFO [\r\n")
+    assert_parse_error("INFO @\r\n")
+    assert_parse_error("INFO [false, true,false,]\r\n")
+
+
+    {:cont, _howmany, state} = parse("CON")
+    {:ok, {:connect, %{}}, "", _} = parse(state, "NECT {}\r\n")
+
+    {:ok, _, "+OK\r\n", _} = parse("PUB S S 1\r\n1\r\n+OK\r\n")
+    {:ok, _, "", _} = parse("PUB S S 1\r\n1\r\n")
+
+    assert_parse_error("PUB S S 1\r\n1\rZ+OK\r\n")
+
+
+    assert_parses(
+      binary:   "INFO {\"a\":{\"b\":{\"c\":\"zebra\"}}}\r\n",
+      expected: {:info, %{"a" => %{"b" => %{"c" => "zebra"}}}},
+      encoded:  "INFO {\"a\": {\"b\": {\"c\": \"zebra\"}}}\r\n",
+    )
+
+    assert_parses(
+      binary:   "INFO {\"a\": [true,false,null,\"abc\",[1],2.2,[]]}\r\n",
+      expected: {:info, %{"a" => [true, false, nil, "abc", [1], 2.2, []]}},
+      encoded:  "INFO {\"a\": [true, false, null, \"abc\", [1], 2.2, []]}\r\n",
+    )
+
+    assert_parses(
+      binary:   "INFO {\"a\":{\"b\":{\"c\":\"zebra\"}}}\r\n",
+      expected: {:info, %{"a" => %{"b" => %{"c" => "zebra"}}}},
+      encoded:  "INFO {\"a\": {\"b\": {\"c\": \"zebra\"}}}\r\n",
+    )
+
+    assert_parses(
+      binary:   "CONNECT {\"a\":{\"b\":{\"c\":\"zebra\"}}}\r\n",
+      expected: {:connect, %{"a" => %{"b" => %{"c" => "zebra"}}}},
+      encoded:  "CONNECT {\"a\": {\"b\": {\"c\": \"zebra\"}}}\r\n",
+    )
   end
- 
+
   test "UNSUB parsing" do
-    {:ok, rest, "", _} =  Nats.Parser.parse("UNSUB sid\r\n")
-    assert rest == {:unsub, "sid", nil}
-    out = encode(rest)
-    assert out == "UNSUB sid\r\n"
-    
-    { v, rest, "", _ } = Nats.Parser.parse("UNSUB sid 10\r\n")
-    assert v == :ok
-    assert rest == {:unsub, "sid", 10}
-    out = encode(rest)
-    assert out == "UNSUB sid 10\r\n"
-
-    { v, _rest, _ } = Nats.Parser.parse("UNSUB sid bad\r\n")
-    assert v == :error
+    assert_parses(
+      binary:   "UNSUB sid\r\n",
+      expected: {:unsub, "sid", nil},
+    )
+    assert_parses(
+      binary:   "UNSUB sid 10\r\n",
+      expected: {:unsub, "sid", 10},
+    )
+    assert_parse_error("UNSUB sid bad\r\n")
   end
- 
+
   test "SUB parsing" do
-    {:ok, verb, "", _} = Nats.Parser.parse("SUB subj sid\r\n")
-    assert verb == {:sub, "subj", nil, "sid"}
-    out = encode(verb)
-    assert out == "SUB subj sid\r\n"
+    assert_parse_error("SUB bad\r\n")
 
-    
-    {:ok, verb, "", _} = Nats.Parser.parse("SUB subj q sid\r\n")
-    assert verb == {:sub, "subj", "q", "sid"}
+    assert_parses(
+      binary:   "SUB subj sid\r\n",
+      expected: {:sub, "subj", nil, "sid"},
+    )
 
-    out = encode(verb)
-    assert out == "SUB subj q sid\r\n"
-    
-    { v, _rest, _ } = Nats.Parser.parse("SUB bad\r\n")
-    assert v == :error
+    assert_parses(
+      binary:   "SUB subj q sid\r\n",
+      expected: {:sub, "subj", "q", "sid"},
+    )
 
-    { :ok, sub, _, _ } = Nats.Parser.parse("SUB S s\r\n")
-    res = encode(sub)
-    assert res == <<"SUB S s\r\n">>
+    assert_parses(
+      binary:   "SUB S s\r\n",
+      expected: {:sub, "S", nil, "s"},
+    )
 
-    { :ok, sub, _, _ } = Nats.Parser.parse("SUB S Q s\r\n")
-    res = encode(sub)
-    assert res == <<"SUB S Q s\r\n">>
+    assert_parses(
+      binary:   "SUB S Q s\r\n",
+      expected: {:sub, "S", "Q", "s"},
+    )
   end
 
   test "PUB parsing" do
-    {:ok, verb, "", _} =  Nats.Parser.parse("PUB subj 0\r\n\r\n")
-    assert verb == {:pub, "subj", nil, ""}
+    assert_parses(
+      binary:   "PUB subj 0\r\n\r\n",
+      expected: {:pub, "subj", nil, ""},
+    )
+    assert_parses(
+      binary:   "PUB subj 4\r\n1234\r\n",
+      expected: {:pub, "subj", nil, "1234"},
+    )
+    assert_parses(
+      binary:   "PUB subj ret 4\r\nnats\r\n",
+      expected: {:pub, "subj", "ret", "nats"},
+    )
+    assert_parses(
+      binary:   "PUB subj ret 2\r\nio\r\n",
+      expected: {:pub, "subj", "ret", "io"},
+    )
+    assert_parses(
+      binary:   "PUB subj ret 5\r\nnats!\r\n",
+      expected: {:pub, "subj", "ret", "nats!"},
+    )
+    assert_parses(
+      binary:   "PUB subj ret 5\r\nnats!\r\n",
+      expected: {:pub, "subj", "ret", "nats!"},
+    )
+    assert_parses(
+      binary:   "PUB subj ret 10\r\nhello nats\r\n",
+      expected: {:pub, "subj", "ret", "hello nats"},
+    )
 
-    out = encode({:pub, "subj", nil, "1234"})
-    assert out == "PUB subj 4\r\n1234\r\n"
+    assert_parse_error("PUB subj ret -1\r\n")
+    assert_parse_error("PUB sub ret zz\r\n")
+    assert_parse_error("PUB sub zz\r\n")
+    assert_parse_error("PUB zz\r\n")
+    assert_parse_error("PUB \r\n")
 
-    {:ok, verb, "", _} = Nats.Parser.parse("PUB subj ret 4\r\nnats\r\n")
-    assert verb == {:pub, "subj", "ret", "nats"}
+    assert {:cont, 2, {_, "", {0, {:pub, "sub", "ret", 0}, ""}}} = parse("PUB sub ret 0\r\n")
+    assert {:cont, 2, {_, "", {0, {:pub, "sub", nil, 0}, ""}}}   = parse("PUB sub 0\r\n")
 
-    
-    out = encode({:pub, "subj", "ret", "io"})
-    assert out == "PUB subj ret 2\r\nio\r\n"
-    
-    {:ok, verb, "", _} = Nats.Parser.parse("PUB subj ret 5\r\nnats!\r\n")
-    assert verb == {:pub, "subj", "ret", "nats!"}
+    assert_parse_error("PUB 0\r\n")
+    assert_parse_error("PUB \r\n")
 
-    {:ok, verb, "", _} = Nats.Parser.parse("PUB subj ret 10\r\nhello nats\r\n")
-    assert verb == {:pub, "subj", "ret", "hello nats"}
-
-    { v, _rest, _ } = Nats.Parser.parse("PUB subj ret -1\r\n")
-    assert v == :error
-    
-    { v, _rest, _ } = Nats.Parser.parse("PUB sub ret zz\r\n")
-    assert v == :error
-    { v, _rest, _ } = Nats.Parser.parse("PUB sub zz\r\n")
-    assert v == :error
-    { v, _rest, _ } = Nats.Parser.parse("PUB zz\r\n")
-    assert v == :error
-    { v, _rest, _ } = Nats.Parser.parse("PUB \r\n")
-    assert v == :error
-
-    { v, _rest, _ } = Nats.Parser.parse("PUB sub ret 0\r\n")
-    assert v == :cont
-    { v, _rest, _ } = Nats.Parser.parse("PUB sub 0\r\n")
-    assert v == :cont
-    { v, _rest, _ } = Nats.Parser.parse("PUB 0\r\n")
-    assert v == :error
-    { v, _rest, _ } = Nats.Parser.parse("PUB \r\n")
-    assert v == :error
-
-    { :ok, pub, _, _ } = Nats.Parser.parse("PUB S 0\r\n\r\n")
-    res = encode(pub)
-    assert res == <<"PUB S 0\r\n\r\n">>
-    
-    { :ok, pub, _, _ } = Nats.Parser.parse("PUB S R 0\r\n\r\n")
-    res = encode(pub)
-    assert res == <<"PUB S R 0\r\n\r\n">>
+    assert_parses(
+      binary:   "PUB S 0\r\n\r\n",
+      expected: {:pub, "S", nil, ""},
+    )
+    assert_parses(
+      binary:   "PUB S R 0\r\n\r\n",
+      expected: {:pub, "S", "R", ""},
+    )
   end
 
   test "MSG parsing" do
-    v = Nats.Parser.parse("MSG subj sid 0\r\n\r\n")
-    #  IO.puts inspect(v)
-    {:ok, verb, "", _} = v
-    assert verb == {:msg, "subj", "sid", nil, ""}
+    assert_parses(
+      binary:   "MSG subj sid 0\r\n\r\n",
+      expected: {:msg, "subj", "sid", nil, ""},
+    )
+    assert_parses(
+      binary:   "MSG subj sid ret 4\r\nnats\r\n",
+      expected: {:msg, "subj", "sid", "ret", "nats"},
+    )
 
-    out = encode(verb)
-    assert out == "MSG subj sid 0\r\n\r\n"
-    
-    {:ok, verb, "", _} = Nats.Parser.parse("MSG subj sid ret 4\r\nnats\r\n")
-    assert verb == {:msg, "subj", "sid", "ret", "nats"}
+    assert_parse_error("MSG subj sid ret bad\r\n")
+    assert_parse_error("MSG subj sid ret -1\r\n")
+    assert_parse_error("MSG subj zz\r\n")
+    assert_parse_error("MSG zz\r\n")
+    assert_parse_error("MSG \r\n")
 
-    out = encode(verb)
-    assert out == "MSG subj sid ret 4\r\nnats\r\n"
-    
-    { v, _rest, _ } = Nats.Parser.parse("MSG subj sid ret bad\r\n")
-    assert v == :error
-    { v, _rest, _ } = Nats.Parser.parse("MSG subj sid ret -1\r\n")
-    assert v == :error
-    { v, _rest, _ } = Nats.Parser.parse("MSG subj zz\r\n")
-    assert v == :error
-    { v, _rest, _ } = Nats.Parser.parse("MSG zz\r\n")
-    assert v == :error
-    { v, _rest, _ } = Nats.Parser.parse("MSG \r\n")
-    assert v == :error
+    assert_parses(
+      binary:   "MSG S s 0\r\n\r\n",
+      expected: {:msg, "S", "s", nil, ""},
+    )
+    assert_parses(
+      binary:   "MSG S s R 0\r\n\r\n",
+      expected: {:msg, "S", "s", "R", ""},
+    )
 
-    { :ok, msg, _, _ } = Nats.Parser.parse("MSG S s 0\r\n\r\n")
-    res = encode(msg)
-    assert res == <<"MSG S s 0\r\n\r\n">>
-    
-    { :ok, msg, _, _ } = Nats.Parser.parse("MSG S s R 0\r\n\r\n")
-    res = encode(msg)
-    assert res == <<"MSG S s R 0\r\n\r\n">>
-    
-    { v, _rest, _ } = Nats.Parser.parse("MSG sub ret 0\r\n")
-    assert v == :cont
-    { v, _rest, _ } = Nats.Parser.parse("MSG sub 0\r\n")
-    assert v == :error
-    { v, _rest, _ } = Nats.Parser.parse("MSG 0\r\n")
-    assert v == :error
-    { v, _rest, _ } = Nats.Parser.parse("MSG \r\n")
-    assert v == :error
+    assert {:cont, 2, {_, "", {0, {:msg, "sub", "ret", nil, 0}, ""}}} = parse("MSG sub ret 0\r\n")
+
+    assert_parse_error("MSG sub 0\r\n")
+    assert_parse_error("MSG 0\r\n")
+    assert_parse_error("MSG \r\n")
   end
 
   test "continuation testing to address GH-18" do
     # Thanks @mindreframer !
     # See https://github.com/nats-io/elixir-nats/issues/18
 
-    
-    {:cont, _, state} = Nats.Parser.parse("CO")
-    {:ok, {:connect, %{}}, "", _} = Nats.Parser.parse(state, "NNECT {}\r\n")
-    
-    {:cont, _, state} = Nats.Parser.parse("CON")
-    {:ok, {:connect, %{}}, "", _} = Nats.Parser.parse(state, "NECT {}\r\n")
 
-    {:cont, _, state} = Nats.Parser.parse("CONN")
-    {:ok, {:connect, %{}}, "", _} = Nats.Parser.parse(state, "ECT {}\r\n")
+    {:cont, _, state} = parse("CO")
+    {:ok, {:connect, %{}}, "", _} = parse(state, "NNECT {}\r\n")
 
-    {:cont, _, state} = Nats.Parser.parse("CONNE")
-    {:ok, {:connect, %{}}, "", _} = Nats.Parser.parse(state, "CT {}\r\n")
+    {:cont, _, state} = parse("CON")
+    {:ok, {:connect, %{}}, "", _} = parse(state, "NECT {}\r\n")
 
-    {:cont, _, state} = Nats.Parser.parse("CONNE")
-    {:ok, {:connect, %{}}, "", _} = Nats.Parser.parse(state, "CT {}\r\n")
+    {:cont, _, state} = parse("CONN")
+    {:ok, {:connect, %{}}, "", _} = parse(state, "ECT {}\r\n")
 
-    {:cont, _, state} = Nats.Parser.parse("-E")
-    {:cont, _, state} = Nats.Parser.parse(state, "R")
-    {:cont, _, state} = Nats.Parser.parse(state, "R")
-    {:cont, _, state} = Nats.Parser.parse(state, "")
-    {:cont, _, state} = Nats.Parser.parse(state, " ")
-    {:cont, _, state} = Nats.Parser.parse(state, " ")
-    {:cont, _, state} = Nats.Parser.parse(state, "")
+    {:cont, _, state} = parse("CONNE")
+    {:ok, {:connect, %{}}, "", _} = parse(state, "CT {}\r\n")
+
+    {:cont, _, state} = parse("CONNE")
+    {:ok, {:connect, %{}}, "", _} = parse(state, "CT {}\r\n")
+
+    {:cont, _, state} = parse("-E")
+    {:cont, _, state} = parse(state, "R")
+    {:cont, _, state} = parse(state, "R")
+    {:cont, _, state} = parse(state, "")
+    {:cont, _, state} = parse(state, " ")
+    {:cont, _, state} = parse(state, " ")
+    {:cont, _, state} = parse(state, "")
     msg = "SOME ERROR"
-    {:cont, _, state} = Nats.Parser.parse(state, msg)
-    {:cont, _, state} = Nats.Parser.parse(state, "")
-    {:cont, _, state} = Nats.Parser.parse(state, "\r")
-    {:cont, _, state} = Nats.Parser.parse(state, "")
+    {:cont, _, state} = parse(state, msg)
+    {:cont, _, state} = parse(state, "")
+    {:cont, _, state} = parse(state, "\r")
+    {:cont, _, state} = parse(state, "")
     msg = " " <> msg
-    {:ok, {:err, ^msg}, "", _state} = Nats.Parser.parse(state, "\n")
+    {:ok, {:err, ^msg}, "", _state} = parse(state, "\n")
 
-    {:cont, _, state} = Nats.Parser.parse("MSG ")
-    {:cont, _, state} = Nats.Parser.parse(state, "")
-    {:cont, _, state} = Nats.Parser.parse(state, "s")
-    {:cont, _, state} = Nats.Parser.parse(state, "")
-    {:cont, _, state} = Nats.Parser.parse(state, "u")
-    {:cont, _, state} = Nats.Parser.parse(state, "")
-    {:cont, _, state} = Nats.Parser.parse(state, "b")
-    {:cont, _, state} = Nats.Parser.parse(state, "")
-    {:cont, _, state} = Nats.Parser.parse(state, " ")
-    {:cont, _, state} = Nats.Parser.parse(state, " ")
-    {:cont, _, state} = Nats.Parser.parse(state, " SID1.")
-    {:cont, _, state} = Nats.Parser.parse(state, "SID2.")
-    {:cont, _, state} = Nats.Parser.parse(state, "")
-    {:cont, _, state} = Nats.Parser.parse(state, "S")
-    {:cont, _, state} = Nats.Parser.parse(state, "I")
-    {:cont, _, state} = Nats.Parser.parse(state, "D3")
-    {:cont, _, state} = Nats.Parser.parse(state, " ")
-    {:cont, _, state} = Nats.Parser.parse(state, "")
-    {:cont, _, state} = Nats.Parser.parse(state, "\t")
-    {:cont, _, state} = Nats.Parser.parse(state, " \t ")
-    {:cont, _, state} = Nats.Parser.parse(state, "4")
-    {:cont, _, state} = Nats.Parser.parse(state, "")
-    {:cont, _, state} = Nats.Parser.parse(state, " ")
-    {:cont, _, state} = Nats.Parser.parse(state, "\t")
-    {:cont, _, state} = Nats.Parser.parse(state, "")
-    {:cont, _, state} = Nats.Parser.parse(state, "\r")
-    {:cont, _, state} = Nats.Parser.parse(state, "")
-    {:cont, _, state} = Nats.Parser.parse(state, "\n")
-    {:cont, _, state} = Nats.Parser.parse(state, "")
-    {:cont, _, state} = Nats.Parser.parse(state, "")
-    {:cont, _, state} = Nats.Parser.parse(state, "na")
-    {:cont, _, state} = Nats.Parser.parse(state, "")
-    {:cont, _, state} = Nats.Parser.parse(state, "t")
-    {:cont, _, state} = Nats.Parser.parse(state, "")
-    {:cont, _, state} = Nats.Parser.parse(state, "s")
-    {:cont, _, state} = Nats.Parser.parse(state, "")
-    {:cont, _, state} = Nats.Parser.parse(state, "\r")
-    {:cont, _, state} = Nats.Parser.parse(state, "")
-    {:ok, verb, "ABC", _state} = Nats.Parser.parse(state, "\nABC")
+    {:cont, _, state} = parse("MSG ")
+    {:cont, _, state} = parse(state, "")
+    {:cont, _, state} = parse(state, "s")
+    {:cont, _, state} = parse(state, "")
+    {:cont, _, state} = parse(state, "u")
+    {:cont, _, state} = parse(state, "")
+    {:cont, _, state} = parse(state, "b")
+    {:cont, _, state} = parse(state, "")
+    {:cont, _, state} = parse(state, " ")
+    {:cont, _, state} = parse(state, " ")
+    {:cont, _, state} = parse(state, " SID1.")
+    {:cont, _, state} = parse(state, "SID2.")
+    {:cont, _, state} = parse(state, "")
+    {:cont, _, state} = parse(state, "S")
+    {:cont, _, state} = parse(state, "I")
+    {:cont, _, state} = parse(state, "D3")
+    {:cont, _, state} = parse(state, " ")
+    {:cont, _, state} = parse(state, "")
+    {:cont, _, state} = parse(state, "\t")
+    {:cont, _, state} = parse(state, " \t ")
+    {:cont, _, state} = parse(state, "4")
+    {:cont, _, state} = parse(state, "")
+    {:cont, _, state} = parse(state, " ")
+    {:cont, _, state} = parse(state, "\t")
+    {:cont, _, state} = parse(state, "")
+    {:cont, _, state} = parse(state, "\r")
+    {:cont, _, state} = parse(state, "")
+    {:cont, _, state} = parse(state, "\n")
+    {:cont, _, state} = parse(state, "")
+    {:cont, _, state} = parse(state, "")
+    {:cont, _, state} = parse(state, "na")
+    {:cont, _, state} = parse(state, "")
+    {:cont, _, state} = parse(state, "t")
+    {:cont, _, state} = parse(state, "")
+    {:cont, _, state} = parse(state, "s")
+    {:cont, _, state} = parse(state, "")
+    {:cont, _, state} = parse(state, "\r")
+    {:cont, _, state} = parse(state, "")
+    {:ok, verb, "ABC", _state} = parse(state, "\nABC")
     assert verb === {:msg, "sub", "SID1.SID2.SID3", nil, "nats"}
   end
 end
