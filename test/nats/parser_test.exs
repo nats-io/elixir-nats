@@ -25,8 +25,8 @@ defmodule Nats.ParserTest do
     assert_parse_error("INFO false \r\n")
     assert_parse_error("INFO \"FFFF\" \r\n")
     assert_parse_error("INFO 456 \r\n")
-    assert_parse_error("INFO true\r\n")
-
+    assert_parse_error("INFO @    \r\n")
+    assert_parse_error("INFO \r\n")
 
     assert_parses(
       binary:   "INFO {\"key\":true}\r\n",
@@ -224,12 +224,23 @@ defmodule Nats.ParserTest do
     assert_parse_error("MSG sub 0\r\n")
     assert_parse_error("MSG 0\r\n")
     assert_parse_error("MSG \r\n")
+
   end
 
   test "continuation testing to address GH-18" do
     # Thanks @mindreframer !
     # See https://github.com/nats-io/elixir-nats/issues/18
 
+    {:cont, _, state} = parse("CONNECT { \"key\": tru")
+    {:cont, _, state} = parse(state, "")
+    {:cont, _, state} = parse(state, "e")
+    {:cont, _, state} = parse(state, "")
+    {:cont, _, state} = parse(state, "      ")
+    {:cont, _, state} = parse(state, "}        ")
+
+    {:cont, _, state} = parse(state, "")
+    {:cont, _, state} = parse(state, "\r")
+    {:ok, {:connect, %{}}, "", _} = parse(state, "\n")
 
     {:cont, _, state} = parse("CO")
     {:ok, {:connect, %{}}, "", _} = parse(state, "NNECT {}\r\n")
@@ -301,6 +312,8 @@ defmodule Nats.ParserTest do
     {:cont, _, state} = parse(state, "")
     {:ok, verb, "ABC", _state} = parse(state, "\nABC")
     assert verb === {:msg, "sub", "SID1.SID2.SID3", nil, "nats"}
+
+    assert_parse_error("SUB SUB SID\r@")
   end
 end
 

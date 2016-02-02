@@ -12,9 +12,15 @@ defmodule Nats.ClientTest do
     {:error, _rest} = Client.start(%{timeout: 0})
     
     {:ok, con } = Client.start_link
-    {:ok, _rest} = Client.sub(con, self(), subject)
+    {:ok, ref1} = Client.sub(con, self(), subject)
+
+    {:error, _} = Client.unsub(con, {elem(ref1, 0), spawn(fn -> 1 + 1 end)})
+
     # can subscribe twice!
-    {:ok, _} = Client.sub(con, self(), subject)
+    {:ok, ref2} = Client.sub(con, self(), subject)
+    assert :ok == Client.unsub(con, ref1)
+    assert :ok == Client.unsub(con, ref2)
+    {:error, _} = Client.unsub(con, ref2)
 
     subject = subject <> subject
     {:ok, ref1} = Client.sub(con, self(), subject, "ret")
@@ -22,6 +28,7 @@ defmodule Nats.ClientTest do
 
     :ok = Client.unsub(con, ref1)
     :ok = Client.unsub(con, ref2)
+    {:error, _} = Client.unsub(con, ref2)
     
     :ok = Client.pub(con, "subject", "hello world")
     :ok = Client.pub(con, "subject", "return", "hello return world")
