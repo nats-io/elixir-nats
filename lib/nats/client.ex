@@ -70,9 +70,11 @@ defmodule Nats.Client do
     case Map.get(subs_by_sid, sid, nil) do
       ^who ->
         other_subs_for_pid = Map.delete(Map.get(subs_by_pid, who), sid)
-        if other_subs_for_pid do
+        IO.puts "other_subs_for_pid(#{Map.size(other_subs_for_pid)}->#{inspect other_subs_for_pid}"
+        if Map.size(other_subs_for_pid) > 0 do
           subs_by_pid = Map.put(subs_by_pid, who, other_subs_for_pid)
         else
+          IO.puts "deleting..."
           # don't carry around empty maps in our state for this pid
           subs_by_pid = Map.delete(subs_by_pid, who)
         end

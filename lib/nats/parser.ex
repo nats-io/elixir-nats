@@ -6,10 +6,10 @@ defmodule Nats.Parser do
   end
 
   @min_lookahead 4
-  defp init_state(rest \\ <<>>, func \\ &verb/2, state \\ nil),
-    do: {func, rest, state}
-  defp cont(func, state, how_many \\ @min_lookahead, rest \\ <<>>),
-    do: {:cont, how_many, init_state(rest, func, state)}
+  defp init_state(rest \\ <<>>, func \\ &verb/2, state \\ nil), do:
+    {func, rest, state}
+  defp cont(func, state, how_many \\ @min_lookahead, rest \\ <<>>), do:
+    {:cont, how_many, init_state(rest, func, state)}
   def parse(string), do: parse(init_state, string)
   def parse(nil, string), do: parse(init_state, string)
   def parse({ func, <<>>, state}, string), do: func.(string, state)
@@ -106,20 +106,12 @@ defmodule Nats.Parser do
             parse_err("not a json object in #{verb}: #inspect json_str}")
           {:error, {_, what, mesg}} ->
             parse_err("invalid json in #{verb} #{what}: #{mesg}: #{inspect json_str}")
-          other ->
-            parse_err("unexpected json parser result for #{verb}: #{inspect other}: #{inspect json_str}")
         end
-      {:eof, _} ->
-        parse_err("json not complete in #{verb}: #{inspect(json_str)}")
-      {:error, {_, why, mesg}} ->
-        parse_err("invalid json tokens in #{verb}: #{why}: #{mesg}")
-      # safe programming ;-)
       other -> parse_err("unexpected json lexer result for json in #{verb}: #{inspect(other)}: #{inspect(json_str)}")
     end
   end
 
 
-  defp parse_res(_, verb = {:error, _, _}), do: verb
   defp parse_res(rest, verb), do: simp_done(rest, verb)
 
   defp done1(rest, w = {:err, _}), do: parse_res(rest, w)
