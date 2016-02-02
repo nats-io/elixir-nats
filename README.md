@@ -6,10 +6,8 @@ _Elixir style_ documentation is located [here](https://nats-io.github.io/elixir-
 
 ## Getting Started
 
-
-Install Elixir
-
-To use the framework in your project, add the following to your `mix.exs`:
+The framework requires Elixir 1.2.2 or above. To use it in your project,
+add the following to your `mix.exs`:
 
 ```elixir
 defp deps do

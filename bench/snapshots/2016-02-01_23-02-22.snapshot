@@ -1,0 +1,14 @@
+duration:2.0;mem stats:false;sys mem stats:false
+module;test;tags;iterations;elapsed
+ClientBench	PUB-SUB 4096 of size 8192		10	3607862
+ClientBench	PUB-SUB 4096 of size 8		20	3645970
+ClientBench	PUB-SUB 4096 of size 512		20	3894721
+ClientBench	PUB-SUB 4096 of size 4096		10	2900421
+ClientBench	PUB-SUB 4096 of size 1024		10	2001128
+ClientBench	PUB-SUB 4096 of size 0		20	3341939
+ClientBench	PUB 4096 of size 8192		500	7442090
+ClientBench	PUB 4096 of size 8		200	3080541
+ClientBench	PUB 4096 of size 512		200	3524819
+ClientBench	PUB 4096 of size 4096		200	3519557
+ClientBench	PUB 4096 of size 1024		200	3476496
+ClientBench	PUB 4096 of size 0		200	3481152
