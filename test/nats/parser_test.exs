@@ -176,8 +176,10 @@ defmodule Nats.ParserTest do
     assert_parse_error("PUB zz\r\n")
     assert_parse_error("PUB \r\n")
 
-    assert {:cont, 2, {_, "", {0, {:pub, "sub", "ret", 0}, ""}}} = parse("PUB sub ret 0\r\n")
-    assert {:cont, 2, {_, "", {0, {:pub, "sub", nil, 0}, ""}}}   = parse("PUB sub 0\r\n")
+    assert {:cont, 2, _} = parse("PUB sub ret 0\r\n")
+    assert {:cont, 2, _}   = parse("PUB sub 0\r\n")
+    assert {:cont, 6, _} = parse("PUB sub ret 4\r\n")
+    assert {:cont, 2, _} = parse("PUB sub ret 4\r\nhell")
 
     assert_parse_error("PUB 0\r\n")
     assert_parse_error("PUB \r\n")
@@ -217,7 +219,7 @@ defmodule Nats.ParserTest do
       expected: {:msg, "S", "s", "R", ""},
     )
 
-    assert {:cont, 2, {_, "", {0, {:msg, "sub", "ret", nil, 0}, ""}}} = parse("MSG sub ret 0\r\n")
+    assert {:cont, 2, _} = parse("MSG sub ret 0\r\n")
 
     assert_parse_error("MSG sub 0\r\n")
     assert_parse_error("MSG 0\r\n")
