@@ -7,7 +7,7 @@ language: elixir
 otp_release:
   - 18.0
 elixir:
-  - 1.2.0
+  - 1.2.2
 sudo: false
 script:
   - gnatsd < /dev/null > /dev/null 2>&1 &

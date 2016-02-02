@@ -8,7 +8,7 @@ defmodule Nats.ConnectionTest do
 
   @tag disabled: true
   test "Open a default connection" do
-	  :erlang.process_flag(:trap_exit, true)
+    :erlang.process_flag(:trap_exit, true)
     opts = %{ tls_required: false,
               auth: %{}, # "user" => "user", "pass" => "pass"},
               verbose: false,
