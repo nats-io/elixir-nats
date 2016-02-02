@@ -12,7 +12,7 @@ defmodule Nats.Client do
                    verbose: false,
                    timeout: @default_timeout,
                    host: @default_host, port: @default_port,
-                   socket_opts: [:binary, active: true],
+                   socket_opts: [:binary, active: :once],
                    ssl_opts: []}
   @start_state %{ conn: nil, opts: %{}, status: :starting, why: nil,
                   subs_by_pid: %{},
@@ -55,11 +55,14 @@ defmodule Nats.Client do
   def handle_info({:msg, _subject, _sid, _reply, _what}, state) do
     {:noreply, state}
   end
-  def handle_cast(_command, state) do
-    # we have no casts.
-#    IO.puts "handle_cast #{inspect(command)}"
+
+  def handle_cast(request, state) do
+    # IO.puts "handle_cast #{inspect(request)}"
+    # assume everything else is a pass through to the IO agent process
+    send state.conn, request
     {:noreply, state}
   end
+  
   # return an error for any calls after we are closed!
   def handle_call(_call, _from, state = %{status: :closed}) do
     {:reply, {:error, "connection closed"}, state}
@@ -70,11 +73,11 @@ defmodule Nats.Client do
     case Map.get(subs_by_sid, sid, nil) do
       ^who ->
         other_subs_for_pid = Map.delete(Map.get(subs_by_pid, who), sid)
-        IO.puts "other_subs_for_pid(#{Map.size(other_subs_for_pid)}->#{inspect other_subs_for_pid}"
+#        IO.puts "other_subs_for_pid(#{Map.size(other_subs_for_pid)}->#{inspect other_subs_for_pid}"
         if Map.size(other_subs_for_pid) > 0 do
           subs_by_pid = Map.put(subs_by_pid, who, other_subs_for_pid)
         else
-          IO.puts "deleting..."
+#          IO.puts "deleting..."
           # don't carry around empty maps in our state for this pid
           subs_by_pid = Map.delete(subs_by_pid, who)
         end
@@ -106,16 +109,10 @@ defmodule Nats.Client do
     #      IO.puts "subscribed!! #{inspect(state)}" 
     {:reply, {:ok, {sid, who}}, state}
   end
-  def handle_call(request, _from, state) do
-    # IO.puts "handle_call #{inspect(request)}"
-    # assume everything else is a pass through to the IO agent process
-    send state.conn, request
-    {:reply, :ok, state}
-  end
  
   def pub(self, subject, what) do pub(self, subject, nil, what) end
   def pub(self, subject, reply, what) do
-    GenServer.call(self, {:pub, subject, reply, what})
+    GenServer.cast(self, {:pub, subject, reply, what})
   end
 
   def sub(self, who, subject, queue \\ nil),

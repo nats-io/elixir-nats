@@ -94,8 +94,8 @@ defmodule Nats.Connection do
                   state),
     do: nats_err(state, "tcp transport error #{inspect(reason)}")
   def handle_info({:tcp_passive, _sock}, state), do: { :noreply, state }
-  def handle_info({:tcp, _sock, data}, state), do: handle_packet(state, data)
-  def handle_info({:ssl, _sock, data}, state), do: handle_packet(state, data)
+  def handle_info({:tcp, _sock, data}, state), do: transport_input(state, data)
+  def handle_info({:ssl, _sock, data}, state), do: transport_input(state, data)
   def handle_info(cmd, state) do
 #    IO.puts "cmd -> #{inspect(cmd)}"
     pack = Nats.Parser.encode(cmd)
@@ -106,6 +106,11 @@ defmodule Nats.Connection do
       oops -> err_log state, ["unexpected send result", oops]
     end
     {:noreply, state}
+  end
+  defp transport_input(state, pack) do
+    res = handle_packet(state, pack)
+    :ok = :inet.setopts(state.sock, [active: :once])
+    res
   end
   defp handle_packet(state, <<>>), do: {:noreply, state}
   defp handle_packet(state, packet) do
