@@ -109,7 +109,7 @@ defmodule Nats.Connection do
   end
   defp transport_input(state, pack) do
     res = handle_packet(state, pack)
-    :ok = :inet.setopts(state.sock, [active: :once])
+    :inet.setopts(state.sock, [active: :once])
     res
   end
   defp handle_packet(state, <<>>), do: {:noreply, state}
