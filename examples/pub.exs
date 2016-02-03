@@ -24,5 +24,5 @@ subject = "elixir.subject"
 msg = "hello NATS world"
 IO.puts "starting NATS nats link..."
 {:ok, pid} = Client.start_link
-Pub.pub(pid, subject, msg, 10000000)
+Pub.pub(pid, subject, msg, 1000)
 IO.puts "exiting..."
