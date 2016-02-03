@@ -56,16 +56,24 @@ defmodule Nats.Client do
     {:noreply, state}
   end
 
+  def handle_cast({:write, cmd}, state) do
+    send state.conn, {:write, cmd}
+    {:noreply, state}
+  end
   def handle_cast(request, state) do
     # IO.puts "handle_cast #{inspect(request)}"
     # assume everything else is a pass through to the IO agent process
-    send state.conn, request
+    handle_cast({:write, Nats.Parser.encode(request)}, state)
     {:noreply, state}
   end
   
   # return an error for any calls after we are closed!
   def handle_call(_call, _from, state = %{status: :closed}) do
     {:reply, {:error, "connection closed"}, state}
+  end
+  def handle_call(mesg = {:flush, _, _}, _from, state) do
+    send state.conn, mesg
+    {:reply, :ok, state}
   end
   def handle_call({:unsub, ref = {sid, who}, afterReceiving}, _from,
                   state = %{subs_by_sid: subs_by_sid,
@@ -81,7 +89,7 @@ defmodule Nats.Client do
           # don't carry around empty maps in our state for this pid
           subs_by_pid = Map.delete(subs_by_pid, who)
         end
-        send state.conn, {:unsub, sid, afterReceiving}
+        handle_cast({:unsub, sid, afterReceiving}, state)
         {:reply, :ok, %{state |
                         subs_by_sid: Map.delete(subs_by_sid, sid),
                         subs_by_pid: subs_by_pid}}
@@ -105,19 +113,28 @@ defmodule Nats.Client do
               subs_by_sid: subs_by_sid,
               subs_by_pid: subs_by_pid,
               next_sid: next_sid + 1}
-    send state.conn, {:sub, subject, queue, sid}
+    handle_cast({:sub, subject, queue, sid}, state)
     #      IO.puts "subscribed!! #{inspect(state)}" 
     {:reply, {:ok, {sid, who}}, state}
   end
  
   def pub(self, subject, what) do pub(self, subject, nil, what) end
   def pub(self, subject, reply, what) do
-    GenServer.cast(self, {:pub, subject, reply, what})
+    GenServer.cast(self, {:write, Nats.Parser.encode({:pub, subject,
+                                                      reply, what})})
   end
 
   def sub(self, who, subject, queue \\ nil),
     do: GenServer.call(self, {:sub, who, subject, queue})
-
   def unsub(self, ref, afterReceiving \\ nil),
     do: GenServer.call(self, {:unsub, ref, afterReceiving})
+  def flush(self, timeout \\ 5000) do
+    r = make_ref()
+    s = self()
+    GenServer.call(self, {:flush, r, s }, timeout)
+    receive do
+      {:flush, ^r, ^s} -> :ok
+    after timeout -> :timeout
+    end
+  end
 end
