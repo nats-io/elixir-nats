@@ -4,11 +4,11 @@ defmodule Nats.ParserTest do
   use ExUnit.Case, async: true
   import TestHelper
 
-  defp encode(x),             do: Enum.join(Nats.Parser.encode(x), "")
+  defp encode(x),             do: Nats.Parser.encode(x)
   defp parse(binary),         do: Nats.Parser.parse(binary)
   defp parse(state, binary),  do: Nats.Parser.parse(state, binary)
 
-   test "PING/PONG/OK/ERR parsing" do
+  test "PING/PONG/OK/ERR parsing" do
     assert_verb_parse_encode("PING\r\n", {:ping})
     assert_verb_parse_encode("PONG\r\n", {:pong})
     assert_verb_parse_encode("+OK\r\n", {:ok})

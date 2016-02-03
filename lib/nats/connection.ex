@@ -9,7 +9,8 @@ defmodule Nats.Connection do
                  send_fn: &:gen_tcp.send/2,
                  opts: %{},
                  ps: nil,
-                 log_header: nil}
+                 log_header: nil,
+                 writer_pid: nil}
 
   defp format(x) when is_binary(x), do: x
   defp format(x) when is_list(x), do: Enum.join(Enum.map(x, &(format(&1))), " ")
@@ -55,7 +56,8 @@ defmodule Nats.Connection do
         :ok = :inet.setopts(connected, state.opts.socket_opts)
         #IO.puts "connected to nats: #{inspect(state)}"
         info_log state, "connected"
-        {:ok, state}
+        writer_pid = spawn_link(fn -> write_loop(state, <<>>, :infinity) end)
+        {:ok, %{state | writer_pid: writer_pid}}
       {:error, reason} ->
         why = "error connecting to #{hpstr}: #{reason}"
         err_log(state, why)
@@ -96,17 +98,56 @@ defmodule Nats.Connection do
   def handle_info({:tcp_passive, _sock}, state), do: { :noreply, state }
   def handle_info({:tcp, _sock, data}, state), do: transport_input(state, data)
   def handle_info({:ssl, _sock, data}, state), do: transport_input(state, data)
-  def handle_info(cmd, state) do
-#    IO.puts "cmd -> #{inspect(cmd)}"
-    pack = Nats.Parser.encode(cmd)
-    debug_log state, ["sending", pack]
-    case state.send_fn.(state.sock, pack) do
-      :ok -> debug_log state, ["sent", pack]
-      {:error, :closed} -> info_log state, "socket closed"
-      oops -> err_log state, ["unexpected send result", oops]
-    end
+  def handle_info(mesg = {:flush, _, _}, state) do
+    send state.writer_pid, mesg
     {:noreply, state}
   end
+  def handle_info({:write, cmd}, state) do
+    debug_log state, ["sending", cmd]
+    send state.writer_pid, {:write, cmd}
+    {:noreply, state}
+  end
+  def handle_info(cmd, state),
+    do: handle_info({:write, Nats.Parser.encode(cmd)}, state)
+  @max_buff_size (1024*32)
+  @flush_wait_time 20
+  defp write_loop(state, acc, howlong) do
+    receive do
+      mesg = {:flush, _r, who} ->
+        to_write = byte_size(acc)
+        debug_log state, ["explicit flush", to_write]
+        if to_write != 0 do
+          state.send_fn.(state.sock, acc)
+          acc = <<>>
+          howlong = :infinity
+        end
+        if who, do: send who, mesg
+      {:write, what} ->
+        acc = acc <> what
+        to_write = byte_size(acc)
+        if to_write != 0 do
+          if to_write >= @max_buff_size do
+            debug_log state, ["buffer flush", to_write]
+            state.send_fn.(state.sock, acc)
+            howlong = :infinity
+            acc = <<>>
+          else
+            debug_log state, ["buffering for", to_write, @flush_wait_time]
+            howlong = @flush_wait_time
+          end
+        end
+    after howlong -> 
+        howlong = :infinity
+        to_write = byte_size(acc)
+        debug_log state, ["time flush", to_write]
+        if to_write != 0 do
+          state.send_fn.(state.sock, acc)
+          acc = <<>>
+        end
+    end
+    write_loop(state, acc, howlong)
+  end
+  
   defp transport_input(state, pack) do
     res = handle_packet(state, pack)
     :inet.setopts(state.sock, [active: :once])
@@ -188,7 +229,9 @@ defmodule Nats.Connection do
           state = %{state | sock: port, send_fn: &:ssl.send/2}
         end
         debug_log state, "completing handshake"
+        # FIXME: jam: race on handshake
         handle_info({:connect, to_send}, state)
+        send state.writer_pid, {:flush, nil, nil}
         debug_log state, "handshake completed"
         send state.worker, {:connected, self()}
         {:noreply, %{state | state: :connected}}

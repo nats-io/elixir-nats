@@ -179,36 +179,29 @@ defmodule Nats.Parser do
   defp member_pair(k,v) when is_binary(k) do
     to_json(k) <> <<": ">> <> to_json(v)
   end
-  @endverb "\r\n"
-  def encode(mesg) do
-    [encode1(mesg), @endverb]
-  end
-  defp encode1({:ok}) do "+OK" end
-  defp encode1({:ping}) do "PING" end
-  defp encode1({:pong}) do "PONG" end
-  defp encode1({:err, msg}) do ["-ERR ", msg] end
-  defp encode1({:info, json}) do ["INFO ", to_json(json)] end
-  defp encode1({:connect, json}) do ["CONNECT ", to_json(json)] end
-  defp encode1({:msg, sub, sid, nil, what}) do
-    ["MSG ", sub, " ", sid, " ", to_string(byte_size(what)), @endverb, what]
-  end
-  defp encode1({:msg, sub, sid, ret, what}) do
-    ["MSG ", sub, " ", sid, " ", ret, " ", to_string(byte_size(what)),
-     @endverb, what]
-  end
-  defp encode1({:pub, sub, nil, what}) do
-    ["PUB ", sub, " ", to_string(byte_size(what)), @endverb, what]
-  end
-  defp encode1({:pub, sub, reply, what}) do
-    ["PUB ", sub, " ", reply, " ", to_string(byte_size(what)), @endverb, what]
-  end
-  defp encode1({:sub, subject, nil, sid}) do
-    ["SUB ", subject, " ", sid]
-  end
-  defp encode1({:sub, subject, queue, sid}) do
-    ["SUB ", subject, " ", queue, " ", sid]
-  end
-  defp encode1({:unsub, sid, nil}), do: ["UNSUB ", sid]
-  defp encode1({:unsub, sid, afterReceiving}),
-    do: ["UNSUB ", sid, " ", to_string(afterReceiving)]
+  def encode({:ok}), do: "+OK\r\n"
+  def encode({:ping}), do: "PING\r\n"
+  def encode({:pong}), do: "PONG\r\n"
+  def encode({:err, msg}), do: "-ERR " <> msg <> "\r\n"
+  def encode({:info, json}), do: "INFO " <> to_json(json) <> "\r\n"
+  def encode({:connect, json}), do: "CONNECT " <> to_json(json) <> "\r\n"
+  def encode({:msg, sub, sid, nil, what}),
+    do: "MSG " <> sub <> " " <> sid <> " " <>
+      to_string(byte_size(what)) <> "\r\n" <> what <> "\r\n"
+  def encode({:msg, sub, sid, ret, what}),
+    do: "MSG " <> sub <> " " <> sid <> " " <> ret <> " " <>
+      to_string(byte_size(what)) <> "\r\n" <> what <> "\r\n"
+  def encode({:pub, sub, nil, what}),
+  do: "PUB " <> sub <> " " <> to_string(byte_size(what)) <>
+    "\r\n" <> what <> "\r\n"
+  def encode({:pub, sub, reply, what}),
+    do: "PUB " <> sub <> " " <> reply <> " " <>
+      to_string(byte_size(what)) <> "\r\n" <> what <> "\r\n"
+  def encode({:sub, subject, nil, sid}),
+    do: "SUB " <> subject <> " " <> sid <> "\r\n"
+  def encode({:sub, subject, queue, sid}),
+    do: "SUB " <> subject <> " " <> queue <> " " <> sid <> "\r\n"
+  def encode({:unsub, sid, nil}), do: "UNSUB " <> sid <> "\r\n"
+  def encode({:unsub, sid, afterReceiving}),
+    do: "UNSUB " <> sid <> " " <> to_string(afterReceiving) <> "\r\n"
 end
