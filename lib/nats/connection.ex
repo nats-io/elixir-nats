@@ -16,15 +16,15 @@ defmodule Nats.Connection do
   defp format(x) when is_list(x), do: Enum.join(Enum.map(x, &(format(&1))), " ")
   defp format(x), do: inspect(x)
 
-  defp log(level, state, what) do
+  defp _log(level, state, what) do
     Logger.log level, fn ->
       if is_list(what), do: what = Enum.join(what, " ")
       Enum.join([state.log_header, format(what)], ": ")
     end
   end
-  defp debug_log(state, what), do: log(:debug, state, what)
-  defp err_log(state, what), do: log(:error, state, what)
-  defp info_log(state, what), do: log(:info, state, what)
+#  defp debug_log(state, what), do: log(:debug, state, what)
+  defp err_log(state, what), do: _log(:error, state, what)
+  defp info_log(state, what), do: _log(:info, state, what)
   
   def start_link(worker, opts) when is_map (opts) do
 #    IO.puts "opts -> #{inspect(opts)}"
@@ -35,7 +35,7 @@ defmodule Nats.Connection do
               ps: nil,
               log_header: "NATS: #{inspect(self())}: "
              }
-    debug_log state, "starting link"
+#    debug_log state, "starting link"
     GenServer.start_link(__MODULE__, state)
   end
 
@@ -90,12 +90,12 @@ defmodule Nats.Connection do
     :ok
   end
   def terminate(reason, state) do
-    debug_log state, ["terminating connection", reason, state]
+#    debug_log state, ["terminating connection", reason, state]
     conn = state.sock
     if conn do
       # FIXME: jam: ssl...
       v = :gen_tcp.close(conn)
-      debug_log state, ["connection closed in terminate", v]
+#      debug_log state, ["connection closed in terminate", v]
     end
     state = %{state | state: :closed, sock: nil}
     super(reason, state)
@@ -115,7 +115,7 @@ defmodule Nats.Connection do
     {:noreply, state}
   end
   def handle_info({:write, cmd}, state) do
-    debug_log state, ["sending", cmd]
+#    debug_log state, ["sending", cmd]
     send state.writer_pid, {:write, cmd}
     {:noreply, state}
   end
@@ -127,7 +127,7 @@ defmodule Nats.Connection do
     receive do
       mesg = {:flush, _r, who} ->
         to_write = byte_size(acc)
-        debug_log state, ["explicit flush", to_write]
+#        debug_log state, ["explicit flush", to_write]
         if to_write != 0 do
           state.send_fn.(state.sock, acc)
           acc = <<>>
@@ -139,19 +139,19 @@ defmodule Nats.Connection do
         to_write = byte_size(acc)
         if to_write != 0 do
           if to_write >= @max_buff_size do
-            debug_log state, ["buffer flush", to_write]
+#            debug_log state, ["buffer flush", to_write]
             state.send_fn.(state.sock, acc)
             howlong = :infinity
             acc = <<>>
           else
-            debug_log state, ["buffering for", to_write, @flush_wait_time]
+#            debug_log state, ["buffering for", to_write, @flush_wait_time]
             howlong = @flush_wait_time
           end
         end
     after howlong -> 
         howlong = :infinity
         to_write = byte_size(acc)
-        debug_log state, ["time flush", to_write]
+#        debug_log state, ["time flush", to_write]
         if to_write != 0 do
           state.send_fn.(state.sock, acc)
           acc = <<>>
@@ -167,24 +167,24 @@ defmodule Nats.Connection do
   end
   defp handle_packet(state, <<>>), do: {:noreply, state}
   defp handle_packet(state, packet) do
-    debug_log state, ["received packet", packet]
+#    debug_log state, ["received packet", packet]
     pres = Nats.Parser.parse(state.ps, packet)
-    debug_log state, ["parsed packet", pres]
+#    debug_log state, ["parsed packet", pres]
     case pres do
       {:ok, msg, rest, nps} ->
-        debug_log state, ["parsed packet", msg]
+#        debug_log state, ["parsed packet", msg]
         case handle_packet1(%{state | ps: nps}, msg) do
           {:noreply, ns } -> handle_packet(ns, rest)
           other -> other
         end
       {:cont, howmany, nps} ->
-        debug_log state, ["partial packet", howmany]
+#        debug_log state, ["partial packet", howmany]
         {:noreply, %{state | ps: nps}}
       other -> nats_err(state, "invalid parser result: #{inspect(other)}")
     end
   end
   defp handle_packet1(state, msg) do
-    debug_log state, ["dispatching packet", elem(msg, 0)]
+#    debug_log state, ["dispatching packet", elem(msg, 0)]
     case msg do
       {:info, json} -> nats_info(state, json)
       {:connect, json} -> nats_connect(state, json)
@@ -209,7 +209,7 @@ defmodule Nats.Connection do
     server_want_auth = json_received["auth_required"] || false
     we_want_auth = Enum.count(auth_opts) != 0
     auth_match = {server_want_auth, we_want_auth}
-    debug_log state, ["checking auth", auth_match]
+#    debug_log state, ["checking auth", auth_match]
     case auth_match do
       {x, x} -> {:ok, Map.merge(json_to_send, auth_opts)}
       _ -> {:error, "client and server disagree on authorization"}
@@ -234,17 +234,17 @@ defmodule Nats.Connection do
       {:ok, to_send} ->
         if state.opts.tls_required do
           opts = state.opts.ssl_opts
-          debug_log state, ["upgrading to tls with", opts]
+#          debug_log state, ["upgrading to tls with", opts]
           res = :ssl.connect(state.sock, opts, state.opts.timeout)
-          debug_log state, ["tls handshake completed", res]
+#          debug_log state, ["tls handshake completed", res]
           {:ok, port} = res
           state = %{state | sock: port, send_fn: &:ssl.send/2}
         end
-        debug_log state, "completing handshake"
+#        debug_log state, "completing handshake"
         # FIXME: jam: race on handshake
         handle_info({:connect, to_send}, state)
         send state.writer_pid, {:flush, nil, nil}
-        debug_log state, "handshake completed"
+#        debug_log state, "handshake completed"
         send state.worker, {:connected, self()}
         {:noreply, %{state | state: :connected}}
       {:error, why} -> nats_err(state, why)
@@ -256,7 +256,7 @@ defmodule Nats.Connection do
   end
   # For server capabilities ;-)
   defp nats_connect(state = %{state: :want_connect}, _json) do
-    debug_log state, "received connect; transitioning to connected"
+#    debug_log state, "received connect; transitioning to connected"
     {:noreply, %{state | state: :server_connected}}
   end
   defp nats_connect(state, json) do
@@ -273,16 +273,16 @@ defmodule Nats.Connection do
     {:noreply, state}
   end
   defp nats_msg(state = %{state: :connected}, sub, sid, ret, body) do
-    debug_log state, ["received MSG", sub, sid, ret, body]
+#    debug_log state, ["received MSG", sub, sid, ret, body]
     send state.worker, {:msg, sub, sid, ret, body}
     {:noreply, state}
   end
   defp nats_pub(state = %{state: :connected}, sub, ret, body) do
-    debug_log state, ["received PUB", sub, ret, body]
+#    debug_log state, ["received PUB", sub, ret, body]
     {:noreply, state}
   end
   defp nats_unsub(state = %{state: :connected}, sid, howMany) do
-    debug_log state, ["received UNSUB", sid, howMany]
+#    debug_log state, ["received UNSUB", sid, howMany]
     {:noreply, state}
   end
 end

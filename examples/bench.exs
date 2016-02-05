@@ -265,11 +265,11 @@ defmodule Bench do
     { _scnt, _smi, _sma, _ssu, variance } = variances
     sdev = :math.sqrt(variance)
     std_err = sdev / :math.sqrt(cnt)
-    zs = %{80 => 1.28,
-           90 => 1.645,
+    zs = %{99 => 1.28,
+           98 => 1.645,
            95 => 1.96,
-           98 => 2.33,
-           99 => 2.58}
+           90 => 2.33,
+           80 => 2.58}
     v = per_n.(true_res)
     # IO.inspect "per n ->"
     # IO.puts "    #{inspect per_n_red}"
@@ -281,11 +281,10 @@ defmodule Bench do
     # IO.puts "    v=#{ft variance, 4} σ=#{ft sdev, 4}"
     # IO.puts "    z=#{ft std_err}"
     sigs = Enum.filter_map(zs, fn {_, zv} ->
-      moe = (std_err * zv)
-      abs(v - mean) <= moe
+      abs(v - mean) <= (std_err * zv)
     end, fn {k, _} -> to_string(k) end)
 #    IO.puts "     sigs=#{inspect sigs}"
-    {true_res, sigs}
+    List.to_tuple(Tuple.to_list(true_res) ++ [sigs])
   end
   defp last([h]), do: h
   defp last([_|t]), do: last(t)
@@ -297,13 +296,11 @@ defmodule Bench do
           Enum.map(mesg_sizes,
             fn sz ->
               res = predict_test(duration, name, test, sz)
-              {res, _} = summarize(res)
-              {sz, res}
+              {sz, summarize(res)}
             end)
           else
             res = predict_test(duration, name, test, 0)
-            {res, _} = summarize(res)
-            [{0, res}]
+            [{0, summarize(res)}]
         end
         }
     end)
@@ -349,19 +346,24 @@ defmodule Bench do
     byte_per_t = (chunks * msg_size) / mu2s(total_micros)
     t_per_op = if chunks != 0, do: total_micros / chunks, else: 0
     bps = (sized? && " #{humanize_bytes byte_per_t}/sec") || ""
-    "#{ft msg_per_t}msg/sec #{ft t_per_op}mu/op #{bps}"
+    "#{ft msg_per_t}msg/sec #{ft t_per_op}μs/op #{bps}"
   end
 end
 
-default_duration = 5
+default_duration = 5.0
 {tot, by_test} = :timer.tc(fn -> Bench.run_tests(default_duration) end)
 IO.puts "## Begin Bench"
 IO.puts "Run-on: #{Bench.format_now}"
 IO.puts "Duration-seconds: #{Bench.ft Bench.mu2s tot}"
 Enum.each(by_test, fn %{name: name, sized: sized?, results: results}  ->
-  Enum.map(results, fn {size, {time, num_chunks, mem}} -> 
+  Enum.map(results, fn x ->
+    {size, {time, num_chunks, mem, extras}} = x
     IO.puts("#{name}#{(sized? && "-" <> to_string(size)) || ""}: T=#{Bench.ft Bench.mu2s time}: N=#{num_chunks} #{Bench.through(sized?, num_chunks, size, time)}")
-    IO.puts "## #{inspect mem}"
+    conf = if Enum.count(extras) != 0,
+    do: Enum.map(extras, &(&1 <> "% ")),
+    else: "(NONE)"
+    IO.puts("## Confidence: #{conf}")
+    IO.puts "## mem=#{inspect mem.used} gcmem=#{inspect mem.used_pre_gc}"
     {size, time}
   end)
 #  IO.puts "results for #{name}: #{inspect xform}"

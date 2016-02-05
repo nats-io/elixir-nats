@@ -1,5 +1,5 @@
 ## Begin Bench
-Run-on: 2016-02-05 02:58:56-05:00
+Run-on: 2016-02-05 00:58:56-05:00
 Duration-seconds: 352.12
 PUB-0: T=5.67: N=7504709 1324026.45msg/sec 0.76mu/op  0.0mb/sec
 ## %{used: %{memory: 7808096, sys_atom: 0, sys_bin: 342432}, used_pre_gc: %{memory: 7841576, sys_atom: 0, sys_bin: 342432}}
@@ -39,3 +39,63 @@ PUB-ASYNC-8192: T=6.45: N=231686 35940.94msg/sec 27.82mu/op  294.43mb/sec
 ## %{used: %{memory: 68422904, sys_atom: 0, sys_bin: 509559376}, used_pre_gc: %{memory: 69106104, sys_atom: 0, sys_bin: 2837164872}}
 SUB: T=5.03: N=472991 94086.13msg/sec 10.63mu/op 
 ## %{used: %{memory: 80985744, sys_atom: 0, sys_bin: 372776}, used_pre_gc: %{memory: 81027128, sys_atom: 0, sys_bin: 372776}}
+## Begin Bench
+Run-on: 2016-02-05 01:05:15-05:00
+Duration-seconds: 347.02
+PUB-0: T=5.05: N=7539465 1492209.58msg/sec 0.67μs/op  0.0mb/sec
+## Confidence: (NONE)
+## mem=%{memory: 264144, sys_atom: 0, sys_bin: 215560} gcmem=%{memory: 297624, sys_atom: 0, sys_bin: 250520}
+PUB-8: T=5.02: N=7061637 1406478.98msg/sec 0.71μs/op  11.25mb/sec
+## Confidence: 80% 90% 95% 98% 
+## mem=%{memory: 735992, sys_atom: 0, sys_bin: 219920} gcmem=%{memory: 769472, sys_atom: 0, sys_bin: 257552}
+PUB-512: T=5.08: N=4821591 949399.34msg/sec 1.05μs/op  486.09mb/sec
+## Confidence: 80% 90% 95% 98% 99% 
+## mem=%{memory: 622736, sys_atom: 0, sys_bin: 599136} gcmem=%{memory: 656216, sys_atom: 0, sys_bin: 599008}
+PUB-1024: T=8.92: N=576566 64666.65msg/sec 15.46μs/op  66.22mb/sec
+## Confidence: (NONE)
+## mem=%{memory: 28582104, sys_atom: 0, sys_bin: 310570096} gcmem=%{memory: 28602792, sys_atom: 0, sys_bin: 310569984}
+PUB-4096: T=5.59: N=134715 24120.31msg/sec 41.46μs/op  98.8mb/sec
+## Confidence: (NONE)
+## mem=%{memory: 16953656, sys_atom: 0, sys_bin: 524490896} gcmem=%{memory: 16969456, sys_atom: 0, sys_bin: 524490896}
+PUB-8192: T=6.68: N=104770 15676.6msg/sec 63.79μs/op  128.42mb/sec
+## Confidence: 80% 
+## mem=%{memory: 18452016, sys_atom: 0, sys_bin: 493910016} gcmem=%{memory: 18467816, sys_atom: 0, sys_bin: 493910016}
+PUB-SUB-0: T=5.04: N=2267387 449809.47msg/sec 2.22μs/op  0.0mb/sec
+## Confidence: (NONE)
+## mem=%{memory: 1767568, sys_atom: 0, sys_bin: 271088} gcmem=%{memory: 1813840, sys_atom: 0, sys_bin: 271088}
+PUB-SUB-8: T=5.02: N=1332511 265464.39msg/sec 3.77μs/op  2.12mb/sec
+## Confidence: 80% 90% 95% 
+## mem=%{memory: 447600, sys_atom: 0, sys_bin: 271496} gcmem=%{memory: 473176, sys_atom: 0, sys_bin: 281472}
+PUB-SUB-512: T=5.04: N=549400 108906.14msg/sec 9.18μs/op  55.76mb/sec
+## Confidence: 80% 90% 95% 98% 
+## mem=%{memory: 5015600, sys_atom: 0, sys_bin: 11695872} gcmem=%{memory: 5041176, sys_atom: 0, sys_bin: 11695872}
+PUB-SUB-1024: T=5.04: N=402166 79829.35msg/sec 12.53μs/op  81.75mb/sec
+## Confidence: 80% 90% 95% 98% 
+## mem=%{memory: 10073112, sys_atom: 0, sys_bin: 37773192} gcmem=%{memory: 10127288, sys_atom: 0, sys_bin: 37773296}
+PUB-SUB-4096: T=5.29: N=195989 37032.2msg/sec 27.0μs/op  151.68mb/sec
+## Confidence: 80% 90% 95% 98% 
+## mem=%{memory: 7027168, sys_atom: 0, sys_bin: 241413296} gcmem=%{memory: 7060648, sys_atom: 0, sys_bin: 241413296}
+PUB-SUB-8192: T=5.21: N=119436 22904.12msg/sec 43.66μs/op  187.63mb/sec
+## Confidence: 80% 90% 95% 98% 99% 
+## mem=%{memory: 8157120, sys_atom: 0, sys_bin: 198035072} gcmem=%{memory: 8182696, sys_atom: 0, sys_bin: 198035072}
+PUB-ASYNC-0: T=5.12: N=7267548 1419525.04msg/sec 0.7μs/op  0.0mb/sec
+## Confidence: 80% 90% 95% 98% 99% 
+## mem=%{memory: 1982224, sys_atom: 0, sys_bin: 97280} gcmem=%{memory: 2057096, sys_atom: 0, sys_bin: 97280}
+PUB-ASYNC-8: T=5.0: N=7251885 1449150.44msg/sec 0.69μs/op  11.59mb/sec
+## Confidence: (NONE)
+## mem=%{memory: 385304, sys_atom: 0, sys_bin: 132856} gcmem=%{memory: 460176, sys_atom: 0, sys_bin: 132856}
+PUB-ASYNC-512: T=5.06: N=4389589 867386.51msg/sec 1.15μs/op  444.1mb/sec
+## Confidence: 80% 90% 95% 98% 99% 
+## mem=%{memory: 413904, sys_atom: 0, sys_bin: 608136} gcmem=%{memory: 488776, sys_atom: 0, sys_bin: 608272}
+PUB-ASYNC-1024: T=9.42: N=2712481 287948.36msg/sec 3.47μs/op  294.86mb/sec
+## Confidence: (NONE)
+## mem=%{memory: 265198488, sys_atom: 0, sys_bin: 847550392} gcmem=%{memory: 291464528, sys_atom: 0, sys_bin: 845924512}
+PUB-ASYNC-4096: T=6.06: N=576583 95080.71msg/sec 10.52μs/op  389.45mb/sec
+## Confidence: (NONE)
+## mem=%{memory: 73030208, sys_atom: 0, sys_bin: 937264040} gcmem=%{memory: 73474544, sys_atom: 0, sys_bin: 2675136360}
+PUB-ASYNC-8192: T=5.59: N=291133 52042.35msg/sec 19.22μs/op  426.33mb/sec
+## Confidence: (NONE)
+## mem=%{memory: 27712704, sys_atom: 0, sys_bin: 2419665264} gcmem=%{memory: 28586296, sys_atom: 0, sys_bin: 2142621440}
+SUB: T=5.01: N=499261 99557.95msg/sec 10.04μs/op 
+## Confidence: 80% 90% 
+## mem=%{memory: 86229968, sys_atom: 0, sys_bin: 1093384} gcmem=%{memory: 86304840, sys_atom: 0, sys_bin: 1093488}
