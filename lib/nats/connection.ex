@@ -15,9 +15,10 @@ defmodule Nats.Connection do
   defp format(x) when is_binary(x), do: x
   defp format(x) when is_list(x), do: Enum.join(Enum.map(x, &(format(&1))), " ")
   defp format(x), do: inspect(x)
+
   defp log(level, state, what) do
     Logger.log level, fn ->
-#      if is_list(what), do: what = Enum.join(what, " ")
+      if is_list(what), do: what = Enum.join(what, " ")
       Enum.join([state.log_header, format(what)], ": ")
     end
   end
@@ -88,6 +89,17 @@ defmodule Nats.Connection do
     send self, {:msg, subject, sid, reply_queue, what}
     :ok
   end
+  def terminate(reason, state) do
+    debug_log state, ["terminating connection", reason, state]
+    conn = state.sock
+    if conn do
+      # FIXME: jam: ssl...
+      v = :gen_tcp.close(conn)
+      debug_log state, ["connection closed in terminate", v]
+    end
+    state = %{state | state: :closed, sock: nil}
+    super(reason, state)
+  end
   def handle_info({:tcp_closed, _sock}, state),
     do: nats_err(state, "connection closed")
   def handle_info({:ssl_closed, _sock}, state),
@@ -110,7 +122,7 @@ defmodule Nats.Connection do
   def handle_info(cmd, state),
     do: handle_info({:write, Nats.Parser.encode(cmd)}, state)
   @max_buff_size (1024*32)
-  @flush_wait_time 20
+  @flush_wait_time 15
   defp write_loop(state, acc, howlong) do
     receive do
       mesg = {:flush, _r, who} ->
@@ -119,9 +131,9 @@ defmodule Nats.Connection do
         if to_write != 0 do
           state.send_fn.(state.sock, acc)
           acc = <<>>
-          howlong = :infinity
         end
         if who, do: send who, mesg
+        howlong = :infinity
       {:write, what} ->
         acc = acc <> what
         to_write = byte_size(acc)
@@ -150,7 +162,7 @@ defmodule Nats.Connection do
   
   defp transport_input(state, pack) do
     res = handle_packet(state, pack)
-    :inet.setopts(state.sock, [active: :once])
+    :ok = :inet.setopts(state.sock, [active: :once])
     res
   end
   defp handle_packet(state, <<>>), do: {:noreply, state}

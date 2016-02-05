@@ -1,0 +1,41 @@
+## Begin Bench
+Run-on: 2016-02-05 02:58:56-05:00
+Duration-seconds: 352.12
+PUB-0: T=5.67: N=7504709 1324026.45msg/sec 0.76mu/op  0.0mb/sec
+## %{used: %{memory: 7808096, sys_atom: 0, sys_bin: 342432}, used_pre_gc: %{memory: 7841576, sys_atom: 0, sys_bin: 342432}}
+PUB-8: T=5.01: N=7142652 1425644.04msg/sec 0.7mu/op  11.41mb/sec
+## %{used: %{memory: 550872, sys_atom: 0, sys_bin: 150808}, used_pre_gc: %{memory: 597144, sys_atom: 0, sys_bin: 150680}}
+PUB-512: T=5.15: N=4763077 925463.77msg/sec 1.08mu/op  473.84mb/sec
+## %{used: %{memory: 509480, sys_atom: 0, sys_bin: 725072}, used_pre_gc: %{memory: 542960, sys_atom: 0, sys_bin: 724944}}
+PUB-1024: T=9.93: N=347331 34962.64msg/sec 28.6mu/op  35.8mb/sec
+## %{used: %{memory: 31722616, sys_atom: 0, sys_bin: 382750464}, used_pre_gc: %{memory: 31743304, sys_atom: 0, sys_bin: 382750464}}
+PUB-4096: T=6.7: N=137567 20544.23msg/sec 48.68mu/op  84.15mb/sec
+## %{used: %{memory: 21311328, sys_atom: 0, sys_bin: 77840184}, used_pre_gc: %{memory: 21327128, sys_atom: 0, sys_bin: 77840184}}
+PUB-8192: T=6.5: N=103585 15932.98msg/sec 62.76mu/op  130.52mb/sec
+## %{used: %{memory: 16207624, sys_atom: 0, sys_bin: 762462856}, used_pre_gc: %{memory: 16236216, sys_atom: 0, sys_bin: 762462856}}
+PUB-SUB-0: T=5.01: N=2117214 422484.69msg/sec 2.37mu/op  0.0mb/sec
+## %{used: %{memory: 1407104, sys_atom: 0, sys_bin: 195608}, used_pre_gc: %{memory: 1440584, sys_atom: 0, sys_bin: 195608}}
+PUB-SUB-8: T=5.02: N=1277259 254635.79msg/sec 3.93mu/op  2.04mb/sec
+## %{used: %{memory: 994328, sys_atom: 0, sys_bin: 103992}, used_pre_gc: %{memory: 1019904, sys_atom: 0, sys_bin: 104408}}
+PUB-SUB-512: T=5.04: N=508817 100937.55msg/sec 9.91mu/op  51.68mb/sec
+## %{used: %{memory: 13353480, sys_atom: 0, sys_bin: 21178288}, used_pre_gc: %{memory: 13399752, sys_atom: 0, sys_bin: 21178984}}
+PUB-SUB-1024: T=5.03: N=385355 76608.41msg/sec 13.05mu/op  78.45mb/sec
+## %{used: %{memory: 6772048, sys_atom: 0, sys_bin: 27938248}, used_pre_gc: %{memory: 6859712, sys_atom: 0, sys_bin: 27938352}}
+PUB-SUB-4096: T=5.31: N=198068 37320.04msg/sec 26.8mu/op  152.86mb/sec
+## %{used: %{memory: 3212864, sys_atom: 0, sys_bin: 109857104}, used_pre_gc: %{memory: 3238440, sys_atom: 0, sys_bin: 109857104}}
+PUB-SUB-8192: T=5.07: N=114252 22534.54msg/sec 44.38mu/op  184.6mb/sec
+## %{used: %{memory: 5316992, sys_atom: 0, sys_bin: 374904408}, used_pre_gc: %{memory: 5350472, sys_atom: 0, sys_bin: 374904408}}
+PUB-ASYNC-0: T=5.24: N=7128665 1360238.34msg/sec 0.74mu/op  0.0mb/sec
+## %{used: %{memory: 1951864, sys_atom: 0, sys_bin: 345040}, used_pre_gc: %{memory: 2164968, sys_atom: 0, sys_bin: 310240}}
+PUB-ASYNC-8: T=5.01: N=7045237 1405588.25msg/sec 0.71mu/op  11.24mb/sec
+## %{used: %{memory: 401112, sys_atom: 0, sys_bin: 334976}, used_pre_gc: %{memory: 455288, sys_atom: 0, sys_bin: 334848}}
+PUB-ASYNC-512: T=5.01: N=4286885 854893.02msg/sec 1.17mu/op  437.71mb/sec
+## %{used: %{memory: 272048, sys_atom: 0, sys_bin: 583056}, used_pre_gc: %{memory: 292736, sys_atom: 0, sys_bin: 582912}}
+PUB-ASYNC-1024: T=8.27: N=2283180 276132.16msg/sec 3.62mu/op  282.76mb/sec
+## %{used: %{memory: 374086504, sys_atom: 0, sys_bin: 1148246168}, used_pre_gc: %{memory: 306585864, sys_atom: 0, sys_bin: 1547591536}}
+PUB-ASYNC-4096: T=8.54: N=957099 112019.35msg/sec 8.93mu/op  458.83mb/sec
+## %{used: %{memory: 142382776, sys_atom: 0, sys_bin: 3831087488}, used_pre_gc: %{memory: 142433472, sys_atom: 0, sys_bin: 3834598264}}
+PUB-ASYNC-8192: T=6.45: N=231686 35940.94msg/sec 27.82mu/op  294.43mb/sec
+## %{used: %{memory: 68422904, sys_atom: 0, sys_bin: 509559376}, used_pre_gc: %{memory: 69106104, sys_atom: 0, sys_bin: 2837164872}}
+SUB: T=5.03: N=472991 94086.13msg/sec 10.63mu/op 
+## %{used: %{memory: 80985744, sys_atom: 0, sys_bin: 372776}, used_pre_gc: %{memory: 81027128, sys_atom: 0, sys_bin: 372776}}
