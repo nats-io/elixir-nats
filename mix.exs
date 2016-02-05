@@ -21,8 +21,8 @@ defmodule Nats.Mixfile do
      homepage_url: @home_url,
      deps: deps,
      name: @name,
-     docs: [extras: ["README.md"], main: "readme",
-            source_url: @git_url],
+     docs: [extra_section: "TOC", main: "readme",
+            extras: ["README.md", "EXAMPLES.md"]],
      test_coverage: [tool: ExCoveralls],
      preferred_cli_env: ["coveralls": :test, "coveralls.detail":
                          :test, "coveralls.post": :test]]

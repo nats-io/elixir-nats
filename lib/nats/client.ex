@@ -66,7 +66,12 @@ defmodule Nats.Client do
     handle_cast({:write, Nats.Parser.encode(request)}, state)
     {:noreply, state}
   end
-  
+  def terminate(reason, state) do
+    Logger.log :info, "terminating client: #{reason}: #{inspect state}"
+    :ok = GenServer.stop(state.conn)
+    state = %{state | conn: nil, status: :closed}
+    super(reason, state)
+  end
   # return an error for any calls after we are closed!
   def handle_call(_call, _from, state = %{status: :closed}) do
     {:reply, {:error, "connection closed"}, state}
