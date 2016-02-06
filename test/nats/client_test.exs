@@ -80,7 +80,7 @@ defmodule Nats.ClientTest do
     # should succeed
     opts = %{ port: @auth_port, auth: %{ "user" => "user", "pass" => "pass"}}
     {:ok, conn } = Client.start opts
-    GenServer.stop(conn)
+    #GenServer.stop(conn)
     # reverse of the above, connect with no auth and see if we get an error
     # back...
     opts = %{ port: @auth_port }
