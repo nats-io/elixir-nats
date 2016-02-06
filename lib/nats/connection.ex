@@ -7,6 +7,7 @@ defmodule Nats.Connection do
                  sock: nil,
                  worker: nil,
                  send_fn: &:gen_tcp.send/2,
+                 close_fn: &:gen_tcp.close/1,
                  opts: %{},
                  ps: nil,
                  log_header: nil,
@@ -18,11 +19,11 @@ defmodule Nats.Connection do
 
   defp _log(level, state, what) do
     Logger.log level, fn ->
-      if is_list(what), do: what = Enum.join(what, " ")
+      if is_list(what), do: what = format(what)
       Enum.join([state.log_header, format(what)], ": ")
     end
   end
-#  defp debug_log(state, what), do: log(:debug, state, what)
+#  defp debug_log(state, what), do: _log(:debug, state, what)
   defp err_log(state, what), do: _log(:error, state, what)
   defp info_log(state, what), do: _log(:info, state, what)
   
@@ -92,9 +93,8 @@ defmodule Nats.Connection do
   def terminate(reason, state) do
 #    debug_log state, ["terminating connection", reason, state]
     conn = state.sock
-    if conn do
-      # FIXME: jam: ssl...
-      v = :gen_tcp.close(conn)
+    if conn != nil do
+      v = state.close_fn.(conn)
 #      debug_log state, ["connection closed in terminate", v]
     end
     state = %{state | state: :closed, sock: nil}
@@ -238,7 +238,8 @@ defmodule Nats.Connection do
           res = :ssl.connect(state.sock, opts, state.opts.timeout)
 #          debug_log state, ["tls handshake completed", res]
           {:ok, port} = res
-          state = %{state | sock: port, send_fn: &:ssl.send/2}
+          state = %{state |
+                    sock: port, send_fn: &:ssl.send/2, close_fn: &:ssl.close/1}
         end
 #        debug_log state, "completing handshake"
         # FIXME: jam: race on handshake

@@ -17,6 +17,7 @@ defmodule Nats.Client do
   @start_state %{ conn: nil, opts: %{}, status: :starting, why: nil,
                   subs_by_pid: %{},
                   subs_by_sid: %{},
+                  opts: @default_opts,
                   next_sid: 0}
 
   def start_link(opts \\ %{}) do
@@ -26,10 +27,10 @@ defmodule Nats.Client do
     GenServer.start(__MODULE__, Map.merge(@default_opts, opts))
   end
 
-  def init(opts) do
+  def init(orig_opts) do
 #    IO.puts "init! #{inspect(opts)}"
     state = @start_state
-    opts = Map.merge(state.opts, opts)
+    opts = Map.merge(state.opts, orig_opts)
     parent = self()
     case Nats.Connection.start_link(parent, opts) do
       {:ok, x}  when is_pid(x) ->

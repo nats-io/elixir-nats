@@ -38,7 +38,7 @@ defmodule Nats.Mixfile do
      {:excoveralls, "~> 0.4.5", only: :test},
      {:earmark, "~> 0.2.1", only: :dev},
      {:ex_doc, "~> 0.11.4", only: :dev},
-     {:porcelain, "~> 2.0", only: :test}] 
+     {:porcelain, "~> 2.0"}]#, only: :test}] 
   end
 
   defp package do
