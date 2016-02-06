@@ -3,7 +3,11 @@ defmodule Nats.ConnectionTest do
   use ExUnit.Case, async: false
   alias Nats.Connection
 
-  test "test general functions" do
+  setup_all do
+    gnatsd = TestHelper.run_gnatsd
+    on_exit fn ->
+      TestHelper.stop_gnatsd(gnatsd)
+    end
   end
 
   @tag disabled: true
