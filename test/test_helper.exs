@@ -3,6 +3,38 @@
 ExUnit.start
 
 defmodule TestHelper do
+
+  @gnatsd_cmd "gnatsd < /dev/null 2>&1"
+  @jobs_or_die "jobs; jobs -p|read||exit\n"
+  def run_gnatsd(opts  \\ %{}) do
+    #setup_all
+    Porcelain.reinit(Porcelain.Driver.Basic)
+    IO.puts "starting... #{inspect opts}"
+    console = IO.binstream(:standard_io, :line)
+    res = Porcelain.spawn_shell("bash", out: console, err: console)
+    IO.puts "started: #{inspect res}"
+    Porcelain.Process.send_input res, "#{@gnatsd_cmd} &\n"
+    :timer.sleep(1_000)
+    running = gnatsd?(res)
+#    IO.puts "hopefully we are done(#{running})... #{inspect res2}"
+    res
+  end
+  def stop_gnatsd(gnatsd) do
+    # this may not stop gnatsd... ;-)
+    Porcelain.Process.send_input gnatsd, @jobs_or_die
+    IO.puts "stopping... #{inspect gnatsd}: #{Porcelain.Process.alive?(gnatsd)}"
+    Porcelain.Process.send_input gnatsd, "jobs; kill %1; sleep 1; jobs\n"
+    res = Porcelain.Process.stop(gnatsd)
+    IO.puts "stopped: #{inspect res}"
+    res
+  end
+  def gnatsd?(gnatsd) do
+#    IO.puts "checking... #{inspect gnatsd}: #{Porcelain.Process.alive?(gnatsd)}"
+    yes = Porcelain.Process.alive?(gnatsd) 
+    yes && Porcelain.Process.send_input gnatsd, @jobs_or_die
+    yes
+  end
+  
   defmacro assert_parse_error(binary) do
     quote do
       { v, _rest, _ } = Nats.Parser.parse(unquote(binary))
@@ -39,3 +71,4 @@ defmodule TestHelper do
     end
   end
 end
+

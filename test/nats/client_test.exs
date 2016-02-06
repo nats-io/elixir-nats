@@ -3,6 +3,13 @@ defmodule Nats.ClientTest do
   use ExUnit.Case, async: false
   alias Nats.Client
 
+  setup_all do
+    gnatsd = TestHelper.run_gnatsd
+    on_exit fn ->
+      TestHelper.stop_gnatsd(gnatsd)
+    end
+  end
+  
   @tag disabled: true
   test "Open a default client" do
     subject = "FOO-bar"

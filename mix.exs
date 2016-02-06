@@ -29,14 +29,16 @@ defmodule Nats.Mixfile do
   end
 
   def application do
-    [applications: [:logger]]
+#    [applications: [:logger]]
+    [applications: [:porcelain, :logger]]
   end
 
   defp deps do
     [{:exrm, "~> 0.18.8", only: :dev},
      {:excoveralls, "~> 0.4.5", only: :test},
      {:earmark, "~> 0.2.1", only: :dev},
-     {:ex_doc, "~> 0.11.4", only: :dev}]
+     {:ex_doc, "~> 0.11.4", only: :dev},
+     {:porcelain, "~> 2.0", only: :test}] 
   end
 
   defp package do
