@@ -14,7 +14,7 @@ GNATSD=gnatsd
 
 run_gnats() {
   echo "$ME: starting NATS server with config: $1"
-  echo "$GNATSD" -c "./test/conf/$1" < /dev/null > /dev/null 2>&1 &
+  "$GNATSD" -c "./test/conf/$1" < /dev/null > /dev/null 2>&1 &
 }
 
 # default server... no config
