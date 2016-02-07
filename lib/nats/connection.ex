@@ -67,14 +67,23 @@ defmodule Nats.Connection do
     end
   end
 
-  def terminate(reason, %{ writer_pid: writer } = state) when writer != nil do
-#    debug_log ["terminating writer", state]
-    send  writer, {:closed, self()}
-    receive do
-      :closed -> :ok
-    after 5_000 ->
-      err_log "didn't get :closed ack back from writer..."
+  defp wait_writer(writer, state) do
+    v = send  writer, {:closed, self()}
+    if v == nil do
+      err_log "writer died?"
+      :ok
+    else
+      receive do
+        :closed -> :ok
+      after 1_000 ->
+#        debug_log "#{inspect self()} didn't get :closed ack back from writer..."
+        wait_writer(writer, state)
+      end
     end
+  end
+  def terminate(reason, %{ writer_pid: writer } = state) when writer != nil do
+    #    debug_log ["terminating writer", state]
+    wait_writer(writer, state)
     terminate(reason, %{ state | writer_pid: nil})
   end
   def terminate(reason, %{ conn: conn } = state) when conn != nil do

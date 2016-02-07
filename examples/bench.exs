@@ -40,7 +40,7 @@ defmodule Bench do
       # make sure its a nats message
       {:msg, _, _, _, _ } ->
         so_far = so_far + 1
-        if rem(so_far, sync) == 0, do: send sync_pid, {:received, so_far}
+#        if rem(so_far, sync) == 0, do: send sync_pid, {:received, so_far}
         receiver_loop(so_far, expected, sync, sync_pid)
       :stop_recv ->
         # IO.puts "receiver_loop: stopping #{expected}"
@@ -188,16 +188,16 @@ defmodule Bench do
   defp do_pubsub(conn, sub, what, so_far, n, last_update) do
     so_far = so_far + 1
     :ok = Client.pub(conn, sub, what)
-    if rem(so_far, @sync_point) == 0 do
-      receive do
-        {:received, x} ->
+#    if rem(so_far, @sync_point) == 0 do
+#      receive do
+#        {:received, x} ->
 #          IO.puts x
-          last_update = x
-      end
-    end
-    if (so_far - last_update) == @sync_point do
-      :erlang.yield() # .sleep(10)
-    end
+#          last_update = x
+#      end
+#    end
+#    if (so_far - last_update) == @sync_point do
+#      :erlang.yield() # .sleep(10)
+#    end
     do_pubsub(conn, sub, what, so_far, n, last_update)
   end
   defp teardown(ctx) do
@@ -350,7 +350,7 @@ defmodule Bench do
   end
 end
 
-default_duration = 5
+default_duration = 5.0
 {tot, by_test} = :timer.tc(fn -> Bench.run_tests(default_duration) end)
 IO.puts "## Begin Bench"
 IO.puts "Run-on: #{Bench.format_now}"
