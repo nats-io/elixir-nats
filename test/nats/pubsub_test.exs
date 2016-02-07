@@ -3,18 +3,10 @@ defmodule Nats.PubsubTest do
   use ExUnit.Case, async: false
   alias Nats.Client
 
-  setup_all do
-    gnatsd = TestHelper.run_gnatsd
-    on_exit fn ->
-      TestHelper.stop_gnatsd(gnatsd)
-    end
-  end
-
-  
   def receive_loop(pid, acc) do
     receive do
       _w -> receive_loop(pid, acc + 1)
-    after 100 ->
+    after 200 ->
       acc
     end
   end
