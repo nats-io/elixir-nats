@@ -1,5 +1,4 @@
 %{"bbmustache": {:hex, :bbmustache, "1.0.1"},
-  "benchfella": {:hex, :benchfella, "0.3.1"},
   "certifi": {:hex, :certifi, "0.3.0"},
   "conform": {:hex, :conform, "0.16.0"},
   "earmark": {:hex, :earmark, "0.2.1"},
@@ -14,7 +13,6 @@
   "jsx": {:hex, :jsx, "2.6.2"},
   "mimerl": {:hex, :mimerl, "1.0.2"},
   "neotoma": {:hex, :neotoma, "1.7.3"},
-  "porcelain": {:hex, :porcelain, "2.0.1"},
   "providers": {:hex, :providers, "1.4.1"},
   "relx": {:hex, :relx, "3.1.0"},
   "ssl_verify_hostname": {:hex, :ssl_verify_hostname, "1.0.5"}}
