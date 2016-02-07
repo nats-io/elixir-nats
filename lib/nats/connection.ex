@@ -23,7 +23,7 @@ defmodule Nats.Connection do
       || format(what))
     end
   end
-  defp debug_log(what), do: _log(:debug, what)
+#  defp debug_log(what), do: _log(:debug, what)
   defp err_log(what), do: _log(:error, what)
   defp info_log(what), do: _log(:info, what)
   
@@ -68,7 +68,7 @@ defmodule Nats.Connection do
   end
 
   def terminate(reason, %{ writer_pid: writer } = state) when writer != nil do
-    debug_log ["terminating writer", state]
+#    debug_log ["terminating writer", state]
     send  writer, {:closed, self()}
     receive do
       :closed -> :ok
@@ -83,7 +83,7 @@ defmodule Nats.Connection do
     terminate(reason, %{state | conn: nil})
   end
   def terminate(reason, %{ state: s } = state) when s != :closed do
-    debug_log ["terminating connection", reason, state]
+#    debug_log ["terminating connection", reason, state]
     super(reason, %{state | state: :closed})
   end
   defp handshake_done(state) do
@@ -92,7 +92,7 @@ defmodule Nats.Connection do
   end
   def handle_info({:packet_flushed, ref}, %{state: :ack_connect,
                                             ack_ref: ref} = state) do
-    debug_log "completed handshake"
+#    debug_log "completed handshake"
     aopts = state.opts.auth
     if aopts != nil && Enum.count(aopts) != 0 do
       # FIXME: jam: this is a hack, when doing auth (and other?)
@@ -123,7 +123,7 @@ defmodule Nats.Connection do
   end
   defp send_packet({:write_flush, _cmd, _flush?, _who, _mesg} = write_cmd, 
                    %{writer_pid: writer}) when writer != nil do
-    debug_log ["send packet", write_cmd]
+#    debug_log ["send packet", write_cmd]
     send writer, write_cmd
     :ok
   end
@@ -136,7 +136,7 @@ defmodule Nats.Connection do
     receive do
       {:closed, waiter} ->
         to_write = byte_size(acc)
-        debug_log ["closing", to_write]
+#        debug_log ["closing", to_write]
         if to_write != 0, do: send_fn.(acc)
         send waiter, :closed
         :ok
@@ -144,13 +144,13 @@ defmodule Nats.Connection do
         if what != nil, do: acc = acc <> what
         to_write = byte_size(acc)
         if to_write != 0 && (to_write >= @max_buff_size || flush?) do
-          debug_log ["buffer write/flush", to_write, "/#{flush?}"]
+#          debug_log ["buffer write/flush", to_write, "/#{flush?}"]
           send_fn.(acc)
           acc = <<>>
           howlong = :infinity
         else
-          debug_log ["buffer write/flush", to_write, ?\/, flush?,
-                            " (buffering)"]
+#          debug_log ["buffer write/flush", to_write, ?\/, flush?,
+#                            " (buffering)"]
           howlong = @flush_wait_time
         end
         if who, do: send who, ack_mesg
@@ -158,7 +158,7 @@ defmodule Nats.Connection do
     after howlong -> 
         howlong = :infinity
         to_write = byte_size(acc)
-        debug_log ["time flush", to_write]
+#        debug_log ["time flush", to_write]
         if to_write != 0 do
           send_fn.(acc)
           acc = <<>>
