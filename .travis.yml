@@ -9,7 +9,6 @@ otp_release:
 elixir:
   - 1.2.2
 sudo: false
-#  - gnatsd < /dev/null > /dev/null 2>&1 &
-#  - sleep 2
 script:
+  - ./test/run-test-servers.sh < /dev/null 2>&1 &
   - "MIX_ENV=test mix do deps.get, compile, coveralls.travis"

@@ -3,27 +3,6 @@ defmodule Nats.ClientTest do
   use ExUnit.Case, async: false
   alias Nats.Client
 
-  @non_tls_port 4222
-  @tls_port 4223
-  @auth_port 4224
-  
-  setup_all do
-    gnatsd = TestHelper.run_gnatsd
-    on_exit fn ->
-      TestHelper.stop_gnatsd(gnatsd)
-    end
-    sec_gnatsd = TestHelper.run_gnatsd("--tls -c " <>
-                                       TestHelper.gnatsd_conf_file("tls.conf"))
-    on_exit fn ->
-      TestHelper.stop_gnatsd(sec_gnatsd)
-    end
-    sec_gnatsd = TestHelper.run_gnatsd("-c " <>
-                                       TestHelper.gnatsd_conf_file("auth.conf"))
-    on_exit fn ->
-      TestHelper.stop_gnatsd(sec_gnatsd)
-    end
-  end
-  
   @tag disabled: true
   test "Open a default client" do
     subject = "FOO-bar"
@@ -54,21 +33,23 @@ defmodule Nats.ClientTest do
     :ok = Client.pub(con, "subject", "return", "hello return world")
 
     :ok = Client.flush(con)
-    :ok = GenServer.cast(con, {:write,
-                               String.duplicate("+OK\r\n", 20)})
+    :ok = GenServer.cast(con, {:write_flush,
+                               String.duplicate("+OK\r\n", 20), false,
+                              nil, nil})
     :ok = Client.flush(con)
     # get coverage...
-    :ok = GenServer.cast(con, {:write,
-                               String.duplicate("PING\r\n", trunc(32767/5))})
+    :ok = GenServer.cast(con, {:write_flush,
+                               String.duplicate("PING\r\n", trunc(32767/5)),
+                               false, nil, nil})
     :ok = Client.flush(con)
-    :ok = GenServer.cast(con, {:write, ""})
+    :ok = GenServer.cast(con, {:write_flush, nil, true, false, false})
     :ok = Client.flush(con)
   end
 
   test "Client vs. server tls_required" do
-    opts = %{ tls_required: true, port: @non_tls_port, }
+    opts = %{ tls_required: true, port: TestHelper.default_port, }
     {:error, _why } = Client.start opts
-    opts = %{ tls_required: true, port: @tls_port, }
+    opts = %{ tls_required: true, port: TestHelper.tls_port, }
     {:ok, conn} = Client.start opts
     GenServer.stop(conn)
   end
@@ -78,18 +59,18 @@ defmodule Nats.ClientTest do
     {:error, _why } = Client.start opts
     # connect to the other server, we want auth and they have it so this
     # should succeed
-    opts = %{ port: @auth_port, auth: %{ "user" => "user", "pass" => "pass"}}
-    {:ok, conn } = Client.start opts
-    #GenServer.stop(conn)
+    opts = %{ port: TestHelper.auth_port,
+              auth: %{ "user" => "user", "pass" => "pass"}}
+    {:ok, _conn } = Client.start opts
+    #GenServer.stop(_conn)
     # reverse of the above, connect with no auth and see if we get an error
     # back...
-    opts = %{ port: @auth_port }
+    opts = %{ port: TestHelper.auth_port}
     {:error, _why} = Client.start opts
     
     # We should fail if we pass invalid credentials, make sure...
-    opts = %{ port: @auth_port, auth: %{ "user" => "oops", "pass" => "oops22"}}
-    {:ok, conn} = Client.start opts
-    ## FIXME: jam, handshake failure...
-    :ok = Client.pub(conn, "fail", "mesg")
+    opts = %{ port: TestHelper.auth_port,
+              auth: %{ "user" => "oops", "pass" => "oops22"}}
+    {:error, _what} = Client.start opts
   end
 end
