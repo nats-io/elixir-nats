@@ -31,8 +31,8 @@ Guidelines for bug reports:
 2. **Check if the issue has been fixed** &mdash; try to reproduce it using the
    `master` branch in the repository.
 
-3. **Isolate and report the problem** &mdash; ideally create a reduced test
-   case.
+3. **Isolate and report the problem** &mdash; ideally create a test case in the test 
+   directory demonstrating the issue as simply and with as little extraneous code as possible.
 
 Please try to be as detailed as possible in your report. Include information about
 your Operating System, your Erlang and Elixir versions. Please provide steps to
