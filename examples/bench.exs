@@ -175,8 +175,8 @@ defmodule Bench do
 #        IO.puts "drain #{count}"
         :ok
       _ -> drain(conn)
-    after 5000 ->
-        IO.puts "timeout draining"
+    after 5_000 ->
+#        IO.puts "timeout draining"
         drain(conn)
     end
   end
@@ -296,10 +296,12 @@ defmodule Bench do
           Enum.map(mesg_sizes,
             fn sz ->
               res = predict_test(duration, name, test, sz)
+              IO.puts "Done with #{name}/#{sz}..."
               {sz, summarize(res)}
             end)
           else
             res = predict_test(duration, name, test, 0)
+            IO.puts "Done with #{name}..."
             [{0, summarize(res)}]
         end
         }
@@ -350,7 +352,7 @@ defmodule Bench do
   end
 end
 
-default_duration = 5.0
+default_duration = 5.0#.0
 {tot, by_test} = :timer.tc(fn -> Bench.run_tests(default_duration) end)
 IO.puts "## Begin Bench"
 IO.puts "Run-on: #{Bench.format_now}"

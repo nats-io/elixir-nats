@@ -56,21 +56,21 @@ defmodule Nats.Client do
   def handle_info({:msg, _subject, _sid, _reply, _what}, state) do
     {:noreply, state}
   end
-  def handle_cast({:write_flush, _cmd, _flush?, _who, _msg} = write_cmd,
-                  state = %{status: client_status})
-    when client_status != :closed do
-    GenServer.cast(state.conn, write_cmd)
-    {:noreply, state}
-  end
   def handle_cast(_request, state) do
 #    IO.puts "OOPS -> handle_cast #{inspect request} / #{inspect state}"
     {:noreply, state}
   end
   def terminate(reason, state = %{status: status}) when status != :closed do
-    Logger.log :info, "terminating client: #{inspect reason}: #{inspect state}"
+#    Logger.log :info, "terminating client: #{inspect reason}: #{inspect state}"
     :ok = GenServer.stop(state.conn)
     state = %{state | conn: nil, status: :closed}
     super(reason, state)
+  end
+  def handle_call({:write_flush, _cmd, _flush?, _who, _msg} = write_cmd, _from,
+                  state = %{status: client_status})
+  when client_status != :closed do
+    GenServer.cast(state.conn, write_cmd)
+    {:reply, :ok, state}
   end
   # return an error for any calls after we are closed!
   def handle_call(_call, _from, state = %{status: :closed}) do
@@ -127,7 +127,7 @@ defmodule Nats.Client do
  
   def pub(self, subject, what) do pub(self, subject, nil, what) end
   def pub(self, subject, reply, what) do
-    GenServer.cast(self, {:write_flush, Nats.Parser.encode({:pub, subject,
+    GenServer.call(self, {:write_flush, Nats.Parser.encode({:pub, subject,
                                                             reply, what}),
                           false, nil, nil})
   end
@@ -138,7 +138,7 @@ defmodule Nats.Client do
     do: GenServer.call(self, {:unsub, ref, afterReceiving})
   def flush(self, timeout \\ 5000) do
     flush_ack = {:"$nats_flush_ack_ref", make_ref()}
-    GenServer.cast(self, {:write_flush, nil, true, self(), flush_ack})
+    GenServer.call(self, {:write_flush, nil, true, self(), flush_ack})
     receive do
       ^flush_ack -> :ok
     after timeout -> :timeout
