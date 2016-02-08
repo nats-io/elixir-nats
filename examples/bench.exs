@@ -182,7 +182,7 @@ defmodule Bench do
   end
   
   defp do_pubsub(conn, _, _, so_far, so_far, _) do
-    Client.flush(conn)
+    Client.flush(conn, :infinity)
     drain(conn)
   end
   defp do_pubsub(conn, sub, what, so_far, n, last_update) do
@@ -352,7 +352,7 @@ defmodule Bench do
   end
 end
 
-default_duration = 5.0#.0
+default_duration = 3.0#.0
 {tot, by_test} = :timer.tc(fn -> Bench.run_tests(default_duration) end)
 IO.puts "## Begin Bench"
 IO.puts "Run-on: #{Bench.format_now}"

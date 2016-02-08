@@ -33,16 +33,16 @@ defmodule Nats.ClientTest do
     :ok = Client.pub(con, "subject", "return", "hello return world")
 
     :ok = Client.flush(con)
-    :ok = GenServer.cast(con, {:write_flush,
-                               String.duplicate("+OK\r\n", 20), false,
-                              nil, nil})
+    :ok = GenServer.call(con, {:cmd,
+                               String.duplicate("+OK\r\n", 20),
+                               false})
     :ok = Client.flush(con)
     # get coverage...
-    :ok = GenServer.cast(con, {:write_flush,
+    :ok = GenServer.call(con, {:cmd,
                                String.duplicate("PING\r\n", trunc(32767/5)),
-                               false, nil, nil})
+                               false})
     :ok = Client.flush(con)
-    :ok = GenServer.cast(con, {:write_flush, nil, true, false, false})
+    :ok = GenServer.call(con, {:cmd, nil, true})
     :ok = Client.flush(con)
   end
 

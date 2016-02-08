@@ -57,8 +57,9 @@ defmodule Nats.Connection do
         :ok = :inet.setopts(connected, state.opts.socket_opts)
         #IO.puts "connected to nats: #{inspect(state)}"
         info_log "connected"
-        sender = &(state.send_fn.(connected, &1))
-        writer_pid = spawn_link(fn -> write_loop(sender, [], 0, :infinity) end)
+        # sender = &(state.send_fn.(connected, &1))
+        if false, do: write_loop(0,0,0,0) # zap compiler warning for now...
+        writer_pid = nil # spawn_link(fn -> write_loop(sender, [], 0, :infinity) end)
         {:ok, %{state | writer_pid: writer_pid}}
       {:error, reason} ->
         why = "error connecting to #{hpstr}: #{reason}"
@@ -82,7 +83,7 @@ defmodule Nats.Connection do
       :ok
     end
   end
-  def terminate(reason, %{ writer_pid: writer } = state) when writer != nil do
+  def terminate(reason, %{ writer_pid: writer } = state) when is_pid(writer) do
     #    debug_log ["terminating writer", state]
     send writer, {:closed, self()}
     wait_writer(writer, state)
@@ -101,8 +102,8 @@ defmodule Nats.Connection do
     send state.worker, {:connected, self(), }
     {:noreply, %{state | state: :connected, ack_ref: nil}}
   end
-  def handle_info({:packet_flushed, ref}, %{state: :ack_connect,
-                                            ack_ref: ref} = state) do
+  def handle_info({:packet_flushed, _, ref}, %{state: :ack_connect,
+                                               ack_ref: ref} = state) do
 #    debug_log "completed handshake"
     aopts = state.opts.auth
     if aopts != nil && Enum.count(aopts) != 0 do
@@ -112,7 +113,7 @@ defmodule Nats.Connection do
       # or error...
       # yuck
       send_packet({:write_flush, Nats.Parser.encode({:ping}),
-                   true, nil, nil}, state)
+                   true, nil}, state)
       {:noreply, %{state | state: :wait_err_or_pong, ack_ref: nil}}
     else
       handshake_done(state)
@@ -125,21 +126,35 @@ defmodule Nats.Connection do
   def handle_info({:tcp_error, msock, reason}, %{sock: s} = state)
     when s == msock,
     do: nats_err(state, "tcp transport error #{inspect(reason)}")
-  def handle_info({:tcp_passive, _sock}, state), do: { :noreply, state }
+  def handle_info({:tcp_passive, _sock}, state) do
+      IO.puts "passiv!!!"
+      { :noreply, state }
+    end
   def handle_info({:tcp, _sock, data}, state), do: transport_input(state, data)
   def handle_info({:ssl, _sock, data}, state), do: transport_input(state, data)
-  def handle_cast(write_cmd = {:write_flush, _, _, _, _}, state) do
+  def handle_cast(write_cmd = {:write_flush, _, _, _}, state) do
     send_packet(write_cmd, state)
     {:noreply, state}
   end
-  defp send_packet({:write_flush, _cmd, _flush?, _who, _mesg} = write_cmd, 
-                   %{writer_pid: writer}) when writer != nil do
+  defp send_packet({:write_flush, _cmd, _flush?, _from} = write_cmd, 
+                   %{writer_pid: writer}) when is_pid(writer) do
 #    debug_log ["send packet", write_cmd]
     send writer, write_cmd
     :ok
   end
-  defp send_packet(pack, state),
-    do: send_packet({:write_flush, pack, false, nil, nil}, state)
+#  defp send_packet(pack, state),
+#    do: send_packet({:write_flush, pack, false, nil, nil}, state)
+  defp send_packet({:write_flush, what, _flush?, ack_mesg},
+                   %{sock: s, send_fn: send_fn})
+  when s != nil do # writer == true do
+    if what != nil, do: send_fn.(s, what)
+    # err_log ["wrote some bytes #{inspect ack_mesg}"]
+    case ack_mesg do
+      {:packet_flushed, who, _ref} -> send who, ack_mesg
+      nil -> nil
+      other -> GenServer.reply(other, :ok)
+   end
+  end
     
   @max_buff_size (1024*32)
   @flush_wait_time 10
@@ -157,8 +172,8 @@ defmodule Nats.Connection do
           acc_size = acc_size + byte_size(what)
         end
         if acc_size != 0 do
-          if  (flush? || acc_size >= @max_buff_size ||
-               (howlong != :infinity && howlong <= @min_flush_wait_time)) do
+          if  (flush? || acc_size >= @max_buff_size) do
+#               (howlong != :infinity && howlong <= @min_flush_wait_time)) do
 #            err_log ["buffer write/flush", acc_size, "/#{flush?}"]
             send_fn.(acc)
             acc = []
@@ -168,8 +183,8 @@ defmodule Nats.Connection do
             old_how_long = howlong
             if howlong == :infinity do
               howlong = @flush_wait_time
-            else
-              howlong = div(howlong, 2)
+#            else
+#              howlong = div(howlong, 2)
             end
 #            err_log ["buffer write/flush", acc_size, "/", flush?, " (buffering)", howlong, old_how_long]
           end
@@ -195,33 +210,31 @@ defmodule Nats.Connection do
   defp handle_packet(state, packet) do
 #    debug_log ["received packet", packet]
     pres = Nats.Parser.parse(state.ps, packet)
-#    debug_log ["parsed packet", pres]
+    #    debug_log ["parsed packet", pres]
     case pres do
       {:ok, msg, rest, nps} ->
-#        debug_log ["parsed packet", msg]
-        case handle_packet1(%{state | ps: nps}, msg) do
+        # debug_log ["dispatching packet", elem(msg, 0)]
+        state = %{state | ps: nps}
+        res = case msg do
+          {:info, json} -> nats_info(state, json)
+          {:connect, json} -> nats_connect(state, json)
+          {:ping} -> nats_ping(state)
+          {:pong} -> nats_pong(state)
+          {:ok} -> nats_ok(state)
+          {:err, why} -> nats_err(state, why)
+          {:msg, _sub, _sid, _ret, _body} -> nats_msg(state, msg)
+          {:pub, sub, rep, what} -> nats_pub(state, sub, rep, what)
+          {:unsub, sid, howMany} -> nats_unsub(state, sid, howMany)
+          _ -> nats_err(state, "received bad NATS verb: -> #{inspect msg}")
+        end
+        case res do
           {:noreply, ns } -> handle_packet(ns, rest)
           other -> other
         end
       {:cont, _howmany, nps} ->
 #        debug_log ["partial packet", howmany]
         {:noreply, %{state | ps: nps}}
-      other -> nats_err(state, "invalid parser result: #{inspect(other)}")
-    end
-  end
-  defp handle_packet1(state, msg) do
-#    debug_log ["dispatching packet", elem(msg, 0)]
-    case msg do
-      {:info, json} -> nats_info(state, json)
-      {:connect, json} -> nats_connect(state, json)
-      {:ping} -> nats_ping(state)
-      {:pong} -> nats_pong(state)
-      {:ok} -> nats_ok(state)
-      {:err, why} -> nats_err(state, why)
-      {:msg, sub, sid, rep, what} -> nats_msg(state, sub, sid, rep, what)
-      {:pub, sub, rep, what} -> nats_pub(state, sub, rep, what)
-      {:unsub, sid, howMany} -> nats_unsub(state, sid, howMany)
-      _ -> nats_err(state, "received bad NATS verb: -> #{inspect(msg)}")
+      other -> nats_err(state, "invalid parser result: #{inspect other}")
     end
   end
   defp nats_err(state, what) do
@@ -270,9 +283,10 @@ defmodule Nats.Connection do
         #        debug_log "handshake: writing connect and waiting for ack"
         ack_ref = make_ref()
         handshake = {:write_flush, Nats.Parser.encode({:connect, to_send}),
-                     true, self(), {:packet_flushed, ack_ref}}
+                     true, {:packet_flushed, self, ack_ref}}
+        state = %{state | state: :ack_connect, ack_ref: ack_ref}
         send_packet(handshake, state)
-        {:noreply, %{state | state: :ack_connect, ack_ref: ack_ref}}
+        {:noreply, state}
       {:error, why} -> nats_err(state, why)
     end
   end
@@ -291,7 +305,7 @@ defmodule Nats.Connection do
   end
   defp nats_ping(state) do
     send_packet({:write_flush, Nats.Parser.encode({:pong}),
-                 true, nil, nil}, state);
+                 true, nil}, state);
     {:noreply, state}
   end
   defp nats_pong(state = %{ state: :wait_err_or_pong}),
@@ -301,9 +315,9 @@ defmodule Nats.Connection do
     do: handshake_done(state)
   defp nats_pong(state), do: {:noreply, state}
   defp nats_ok(state), do: {:noreply, state}
-  defp nats_msg(state = %{state: :connected}, sub, sid, ret, body) do
+  defp nats_msg(state = %{state: :connected}, msg) do
 #    debug_log  ["received MSG", sub, sid, ret, body]
-    send state.worker, {:msg, sub, sid, ret, body}
+    send state.worker, msg
     {:noreply, state}
   end
   defp nats_pub(state = %{state: :connected}, _sub, _ret, _body) do

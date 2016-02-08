@@ -56,22 +56,17 @@ defmodule Nats.Client do
   def handle_info({:msg, _subject, _sid, _reply, _what}, state) do
     {:noreply, state}
   end
-  def handle_cast(_request, state) do
-#    IO.puts "OOPS -> handle_cast #{inspect request} / #{inspect state}"
-    {:noreply, state}
-  end
   def terminate(reason, state = %{status: status}) when status != :closed do
 #    Logger.log :info, "terminating client: #{inspect reason}: #{inspect state}"
     :ok = GenServer.stop(state.conn)
     state = %{state | conn: nil, status: :closed}
     super(reason, state)
   end
-  def handle_call({:write_flush, _cmd, _flush?, _who, _msg} = write_cmd, _from,
-                  state = %{status: client_status})
-  when client_status != :closed do
-    GenServer.cast(state.conn, write_cmd)
-    {:reply, :ok, state}
-  end
+  defp send_cmd(state, cmd),
+    do: send_cmd(state, Nats.Parser.encode(cmd), false, nil)
+  defp send_cmd(state, cmd, flush?, from),
+    do: GenServer.cast(state.conn,
+                       {:write_flush, cmd, flush?, from})
   # return an error for any calls after we are closed!
   def handle_call(_call, _from, state = %{status: :closed}) do
     {:reply, {:error, "connection closed"}, state}
@@ -90,13 +85,11 @@ defmodule Nats.Client do
           # don't carry around empty maps in our state for this pid
           subs_by_pid = Map.delete(subs_by_pid, who)
         end
-        GenServer.cast(state.conn,
-                       {:write_flush,
-                        Nats.Parser.encode({:unsub, sid, afterReceiving}),
-                        false, nil, nil})
-        {:reply, :ok, %{state |
-                        subs_by_sid: Map.delete(subs_by_sid, sid),
-                        subs_by_pid: subs_by_pid}}
+        state = %{state |
+                  subs_by_sid: Map.delete(subs_by_sid, sid),
+                  subs_by_pid: subs_by_pid}        
+        send_cmd(state, {:unsub, sid, afterReceiving})
+        {:reply, :ok, state}
       nil ->
         {:reply, {:error, {"not subscribed", ref}}, state}
       _ ->
@@ -117,31 +110,29 @@ defmodule Nats.Client do
               subs_by_sid: subs_by_sid,
               subs_by_pid: subs_by_pid,
               next_sid: next_sid + 1}
-    GenServer.cast(state.conn,
-                   {:write_flush,
-                    Nats.Parser.encode({:sub, subject, queue, sid}),
-                    false, nil, nil})
-    #      IO.puts "subscribed!! #{inspect(state)}" 
+    send_cmd(state, {:sub, subject, queue, sid})
+    # IO.puts "subscribed!! #{inspect(state)}" 
     {:reply, {:ok, {sid, who}}, state}
+  end
+  def handle_call({:cmd, encoded, flush?} , from,
+                  state = %{status: client_status})
+  when client_status != :closed do
+    # cast to the connection, and let it respond
+    send_cmd(state, encoded, flush?, from)
+    {:noreply, state}
   end
  
   def pub(self, subject, what) do pub(self, subject, nil, what) end
-  def pub(self, subject, reply, what) do
-    GenServer.call(self, {:write_flush, Nats.Parser.encode({:pub, subject,
-                                                            reply, what}),
-                          false, nil, nil})
-  end
-
+  def pub(self, subject, reply, what),
+    do: GenServer.call(self, {:cmd,
+                              Nats.Parser.encode({:pub, subject,
+                                                  reply, what}),
+                              false})
   def sub(self, who, subject, queue \\ nil),
     do: GenServer.call(self, {:sub, who, subject, queue})
   def unsub(self, ref, afterReceiving \\ nil),
     do: GenServer.call(self, {:unsub, ref, afterReceiving})
-  def flush(self, timeout \\ 5000) do
-    flush_ack = {:"$nats_flush_ack_ref", make_ref()}
-    GenServer.call(self, {:write_flush, nil, true, self(), flush_ack})
-    receive do
-      ^flush_ack -> :ok
-    after timeout -> :timeout
-    end
-  end
+  def flush(self, timeout \\ :infinity),
+    do: GenServer.call(self, {:cmd, nil, true}, timeout)
 end
+
