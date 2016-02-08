@@ -13,7 +13,6 @@ Use the issues tracker for:
 Please **do not** use the issue tracker for personal support requests nor feature requests. Instead,
 please reach out to us at
 
-* [info@nats.io](mailto:info@nats.io)
 * [Twitter](https://twitter.com/nats_io)
 * [Google Mailing List](https://groups.google.com/forum/#!forum/natsio)
 * [Slack](https://docs.google.com/a/apcera.com/forms/d/104yA7oqq7SPoMDG_J9MnVE74gVwBnTmVHKP5ABHoM5k/viewform?embedded=true)
