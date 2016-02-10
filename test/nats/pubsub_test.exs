@@ -10,8 +10,7 @@ defmodule Nats.PubsubTest do
       acc
     end
   end
-
-  @tag disabled: true
+  @tag requires_gnatsd: true
   test "Publish some messages..." do
     subject = "TheSubject"
     {:ok, con} = Client.start_link

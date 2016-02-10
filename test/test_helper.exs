@@ -1,5 +1,5 @@
 # Copyright 2016 Apcera Inc. All rights reserved.
-#ExUnit.configure exclude: [disabled: true]
+#ExUnit.configure exclude: [requires_gnatsd: true]
 ExUnit.start
 
 defmodule TestHelper do

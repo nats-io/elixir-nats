@@ -3,11 +3,11 @@ defmodule Nats.ClientTest do
   use ExUnit.Case, async: false
   alias Nats.Client
 
-  @tag disabled: true
+  @tag requires_gnatsd: true
   test "Open a default client" do
     subject = "FOO-bar"
 
-    {:error, _rest} = Client.start(%{host: ''})
+    {:error, _rest} = Client.start(%{host: ""})
 
     {:error, _rest} = Client.start(%{timeout: 0})
     
@@ -46,12 +46,25 @@ defmodule Nats.ClientTest do
     :ok = Client.flush(con)
   end
 
-  test "Client vs. server tls_required" do
+  test "Client wants tls vs. server doesn't" do
     opts = %{ tls_required: true, port: TestHelper.default_port, }
     {:error, _why } = Client.start opts
+    opts = %{ auth_opts: %{}, tls_required: true, port: TestHelper.default_port, }
+    {:error, _why } = Client.start opts
+  end
+  test "Client doesn't want tls vs. server does" do 
+    # check whether we 
+    opts = %{ tls_required: false, port: TestHelper.tls_port, }
+    {:error, _why } = Client.start opts
+    opts = %{ auth_opts: %{}, tls_required: false, port: TestHelper.tls_port, }
+    {:error, _why } = Client.start opts
+  end
+  test "Client and server both want tls" do
     opts = %{ tls_required: true, port: TestHelper.tls_port, }
     {:ok, conn} = Client.start opts
-    GenServer.stop(conn)
+    Client.stop(conn)
+    opts = %{ auth_opts: %{}, tls_required: true, port: TestHelper.tls_port, }
+    {:ok, _err} = Client.start opts
   end
   test "Client vs. server auth" do
     # see if the server wants auth, it should NOT and we do... so we should fail
@@ -61,8 +74,8 @@ defmodule Nats.ClientTest do
     # should succeed
     opts = %{ port: TestHelper.auth_port,
               auth: %{ "user" => "user", "pass" => "pass"}}
-    {:ok, _conn } = Client.start opts
-    #GenServer.stop(_conn)
+    {:ok, conn } = Client.start opts
+    Client.stop(conn)
     # reverse of the above, connect with no auth and see if we get an error
     # back...
     opts = %{ port: TestHelper.auth_port}
