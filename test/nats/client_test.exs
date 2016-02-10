@@ -34,12 +34,12 @@ defmodule Nats.ClientTest do
 
     :ok = Client.flush(con)
     :ok = GenServer.call(con, {:cmd,
-                               String.duplicate("+OK\r\n", 20),
+                               Nats.Parser.encode({:ok}),
                                false})
     :ok = Client.flush(con)
     # get coverage...
     :ok = GenServer.call(con, {:cmd,
-                               String.duplicate("PING\r\n", trunc(32767/5)),
+                               Nats.Parser.encode({:ping}),
                                false})
     :ok = Client.flush(con)
     :ok = GenServer.call(con, {:cmd, nil, true})

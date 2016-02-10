@@ -22,6 +22,11 @@ defmodule TestHelper do
       assert {:ok, verb, "", _} = Nats.Parser.parse(binary)
       assert verb == expected_verb
       out = encode(verb)
+      {_, l, out} = Nats.Parser.encode(verb)
+      flat = IO.iodata_to_binary(out)
+      assert flat === binary
+      assert byte_size(flat) === l
+      out = Nats.Parser.flat_encode(verb)
       assert out == binary
     end
   end

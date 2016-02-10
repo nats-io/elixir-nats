@@ -29,5 +29,14 @@ defmodule Nats.PubsubTest do
     {:error, _rest} = Client.unsub(con, ref1)
     :ok = Client.unsub(con, ref2)
     {:error, _rest} = Client.unsub(con, ref2)
+
+    Client.pub(con, subject, "ret", "1")
+    Client.pub(con, subject, "ret", nil)
+    Client.pub(con, subject, nil, nil)
+    Client.pub(con, subject, nil)
+    Client.pub(con, subject, "")
+    Client.pub(con, subject, "0")
+    Client.pub(con, subject, ["0123456789"])
+    Client.pub(con, subject, "0123456789A")
   end
 end

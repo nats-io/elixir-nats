@@ -57,9 +57,8 @@ defmodule Nats.Connection do
         :ok = :inet.setopts(connected, state.opts.socket_opts)
         #IO.puts "connected to nats: #{inspect(state)}"
         info_log "connected"
-        # sender = &(state.send_fn.(connected, &1))
-        if false, do: write_loop(0,0,0,0) # zap compiler warning for now...
-        writer_pid = nil # spawn_link(fn -> write_loop(sender, [], 0, :infinity) end)
+        sender = &(state.send_fn.(connected, &1))
+	      writer_pid = spawn_link(fn -> write_loop(sender, [], 0, :infinity) end)
         {:ok, %{state | writer_pid: writer_pid}}
       {:error, reason} ->
         why = "error connecting to #{hpstr}: #{reason}"
@@ -74,8 +73,8 @@ defmodule Nats.Connection do
         :closed -> :ok
       after 1_000 ->
           # FIXME: jam: hook up to sup tree
-#        debug_log "#{inspect self()} didn't get :closed ack back from writer..."
-#        debug_log ["waiting for waiter ack...", writer, state]
+#        err_log "#{inspect self()} didn't get :closed ack back from writer..."
+        err_log ["waiting for waiter ack...", writer, state]
         wait_writer(writer, state)
       end
     else
@@ -99,12 +98,13 @@ defmodule Nats.Connection do
     super(reason, %{state | state: :closed})
   end
   defp handshake_done(state) do
+#    err_log "handshake done"
     send state.worker, {:connected, self(), }
     {:noreply, %{state | state: :connected, ack_ref: nil}}
   end
   def handle_info({:packet_flushed, _, ref}, %{state: :ack_connect,
                                                ack_ref: ref} = state) do
-#    debug_log "completed handshake"
+#    err_log "completed handshake"
     aopts = state.opts.auth
     if aopts != nil && Enum.count(aopts) != 0 do
       # FIXME: jam: this is a hack, when doing auth (and other?)
@@ -127,7 +127,7 @@ defmodule Nats.Connection do
     when s == msock,
     do: nats_err(state, "tcp transport error #{inspect(reason)}")
   def handle_info({:tcp_passive, _sock}, state) do
-      IO.puts "passiv!!!"
+#      IO.puts "passiv!!!"
       { :noreply, state }
     end
   def handle_info({:tcp, _sock, data}, state), do: transport_input(state, data)
@@ -136,67 +136,98 @@ defmodule Nats.Connection do
     send_packet(write_cmd, state)
     {:noreply, state}
   end
-  defp send_packet({:write_flush, _cmd, _flush?, _from} = write_cmd, 
+  defp send_packet({:write_flush, _what, _flush?, ack_mesg} = write_cmd, 
                    %{writer_pid: writer}) when is_pid(writer) do
 #    debug_log ["send packet", write_cmd]
-    send writer, write_cmd
+#    err_log "send packet #{inspect flush?} #{inspect from} #{inspect writer} #{Process.alive?(writer)}"
+    if Process.alive?(writer) do
+      send writer, write_cmd
+    else
+      IO.puts "DEAD!!!"
+      case ack_mesg do
+        {:packet_flushed, who, _ref} -> send who, ack_mesg
+        nil -> nil
+        _ -> GenServer.reply(ack_mesg, :ok)
+      end
+    end
     :ok
   end
 #  defp send_packet(pack, state),
 #    do: send_packet({:write_flush, pack, false, nil, nil}, state)
-  defp send_packet({:write_flush, what, _flush?, ack_mesg},
-                   %{sock: s, send_fn: send_fn})
-  when s != nil do # writer == true do
-    if what != nil, do: send_fn.(s, what)
-    # err_log ["wrote some bytes #{inspect ack_mesg}"]
-    case ack_mesg do
-      {:packet_flushed, who, _ref} -> send who, ack_mesg
-      nil -> nil
-      other -> GenServer.reply(other, :ok)
-   end
-  end
+#  defp send_packet({:write_flush, to_write, _flush?, ack_mesg},
+#                   %{sock: s, send_fn: send_fn})
+#  when s != nil do # writer == true do
+#    if to_write != nil do
+#      {:msg, what_len, what} = to_write
+#      send_fn.(s, what)
+#    end
+#    # err_log ["wrote some bytes #{inspect ack_mesg}"]
+#    case ack_mesg do
+#      {:packet_flushed, who, _ref} -> send who, ack_mesg
+#      nil -> nil
+#      other -> GenServer.reply(other, :ok)
+#   end
+#  end
     
-  @max_buff_size (1024*32)
-  @flush_wait_time 10
+  @max_buff_size (32*1024)
+  @flush_wait_time 24
   @min_flush_wait_time 2
   defp write_loop(send_fn, acc, acc_size, howlong) do
+#    err_log "entering receive: acc_size=#{acc_size} howlong=#{howlong}"
     receive do
+      {:sender_changed, send_fn} ->
+#        err_log ["sender changed", send_fn]
+        write_loop(send_fn, acc, acc_size, howlong)
       {:closed, waiter} ->
 #        err_log ["closing", acc_size]
         if acc_size != 0, do: send_fn.(acc)
         send waiter, :closed
         :ok
-      {:write_flush, what, flush?, who, ack_mesg} ->
-        if what != nil do
-          acc = [acc|what]
-          acc_size = acc_size + byte_size(what)
+      {:write_flush, w, flush?, ack_mesg} ->
+        case w do
+          {:msg, what_len, what} -> 
+            if what_len != 0 do
+              acc = [acc|what]
+              acc_size = acc_size + what_len
+              if (IO.iodata_length(what) != what_len), do: exit(1)
+            end
+          nil -> nil
         end
         if acc_size != 0 do
           if  (flush? || acc_size >= @max_buff_size) do
-#               (howlong != :infinity && howlong <= @min_flush_wait_time)) do
-#            err_log ["buffer write/flush", acc_size, "/#{flush?}"]
-            send_fn.(acc)
+#            err_log [">buffer write/flush", acc_size, "/#{flush?}"]
+            :ok = send_fn.(acc)
+#            err_log ["<buffer write/flush", acc_size, "/#{flush?}"]
             acc = []
             acc_size = 0
             howlong = :infinity
           else
-            old_how_long = howlong
-            if howlong == :infinity do
-              howlong = @flush_wait_time
-#            else
-#              howlong = div(howlong, 2)
+            howlong = case howlong do
+              :infinity -> @flush_wait_time
+              x when x <= @min_flush_wait_time ->
+                0
+              x -> div(x, 3)
             end
-#            err_log ["buffer write/flush", acc_size, "/", flush?, " (buffering)", howlong, old_how_long]
+#            err_log ["buffer write/flush", acc_size, "/", flush?, " (buffering)", howlong]
           end
         else
 #          err_log ["buffer write/flush (nothing to write)", acc_size]
           howlong = :infinity
         end
-        if who, do: send who, ack_mesg
+#        err_log ["ack_mesg -> #{inspect ack_mesg}"]
+        case ack_mesg do
+          {:packet_flushed, who, _ref} -> send who, ack_mesg
+#            err_log "REPLYING to WHO!!"
+          nil -> nil
+#            err_log "NOT REPLYING"
+          other -> GenServer.reply(other, :ok)
+#            err_log "REPLYING!!"
+        end
         write_loop(send_fn, acc, acc_size, howlong)
     after howlong -> 
-#        err_log ["time flush", acc_size]
-        send_fn.(acc)
+#        err_log [">time flush", acc_size]
+        :ok = send_fn.(acc)
+#        err_log ["<time flush", acc_size]
         write_loop(send_fn, [], 0, :infinity)
     end
   end
@@ -277,6 +308,8 @@ defmodule Nats.Connection do
           res = :ssl.connect(state.sock, opts, state.opts.timeout)
 #          debug_log ["tls handshake completed", res]
           {:ok, port} = res
+          new_sender = &(:ssl.send(port, &1))
+          send state.writer_pid, {:sender_changed, new_sender}
           state = %{state |
                     sock: port, send_fn: &:ssl.send/2, close_fn: &:ssl.close/1}
         end
