@@ -3,6 +3,8 @@ defmodule Nats.Client do
   use GenServer
   require Logger
 
+  alias Nats.Connection
+  
   @default_host "127.0.0.1"
   @default_port 4222
   @default_timeout 5000
@@ -32,7 +34,7 @@ defmodule Nats.Client do
     state = @start_state
     opts = Map.merge(state.opts, orig_opts)
     parent = self()
-    case Nats.Connection.start_link(parent, opts) do
+    case Connection.start_link(parent, opts) do
       {:ok, x}  when is_pid(x) ->
         receive do
           {:connected, ^x } ->
@@ -57,8 +59,8 @@ defmodule Nats.Client do
     {:noreply, state}
   end
   def terminate(reason, state = %{status: status}) when status != :closed do
-#    Logger.log :info, "terminating client: #{inspect reason}: #{inspect state}"
-    :ok = GenServer.stop(state.conn)
+    #    Logger.log :info, "terminating client: #{inspect reason}: #{inspect state}"
+    :ok = Connection.stop(state.conn)
     state = %{state | conn: nil, status: :closed}
     super(reason, state)
   end
@@ -134,5 +136,9 @@ defmodule Nats.Client do
     do: GenServer.call(self, {:unsub, ref, afterReceiving})
   def flush(self, timeout \\ :infinity),
     do: GenServer.call(self, {:cmd, nil, true}, timeout)
+  def stop(self, timeout \\ :infinity) do
+    flush(self, timeout)
+    GenServer.stop(self)
+  end
 end
 
