@@ -179,29 +179,48 @@ defmodule Nats.Parser do
   defp member_pair(k,v) when is_binary(k) do
     to_json(k) <> <<": ">> <> to_json(v)
   end
-  def encode({:ok}), do: "+OK\r\n"
-  def encode({:ping}), do: "PING\r\n"
-  def encode({:pong}), do: "PONG\r\n"
-  def encode({:err, msg}), do: "-ERR " <> msg <> "\r\n"
-  def encode({:info, json}), do: "INFO " <> to_json(json) <> "\r\n"
-  def encode({:connect, json}), do: "CONNECT " <> to_json(json) <> "\r\n"
+  def flat_encode(verb), do: encode(verb) |> elem(2) |> IO.iodata_to_binary
+  
+  defp encode_done(x, len), do: {:msg, len, x}
+  defp encode_done(x), do: encode_done(x, byte_size(x))
+  
+  defp encode_body(verb, nil), do: encode_body(verb, nil, 0)
+  defp encode_body(verb, body) when is_binary(body),
+    do: encode_body(verb, body, byte_size(body))
+  defp encode_body(verb, iolist) when is_list(iolist),
+    do: encode_body(verb,  iolist, IO.iodata_length(iolist))
+  defp encode_body(verb, _, 0),
+    do: encode_done([verb, <<" 0\r\n\r\n">>], IO.iodata_length(verb) + 6)
+  defp encode_body(verb, body, body_len),
+    do: encode_body(verb, body, body_len, " " <> to_string(body_len))
+  defp encode_body(verb, body, body_len, body_len_str) do
+    aug_verb = verb <> body_len_str <> "\r\n"
+    encode_done([aug_verb, body, <<"\r\n">>],
+                byte_size(aug_verb) + body_len + 2)
+  end
+  def encode({:ok}), do: encode_done(<<"+OK\r\n">>, 5)
+  def encode({:ping}), do: encode_done(<<"PING\r\n">>, 6)
+  def encode({:pong}), do: encode_done(<<"PONG\r\n">>, 6)
+  def encode({:err, msg}), do: encode_done("-ERR " <> msg <> "\r\n")
+  def encode({:info, json}),
+    do: encode_done("INFO " <> to_json(json) <> "\r\n")
+  def encode({:connect, json}),
+    do: encode_done("CONNECT " <> to_json(json) <> "\r\n")
   def encode({:msg, sub, sid, nil, what}),
-    do: "MSG " <> sub <> " " <> sid <> " " <>
-      to_string(byte_size(what)) <> "\r\n" <> what <> "\r\n"
+    do: encode_body("MSG " <> sub <> " " <> sid, what)
   def encode({:msg, sub, sid, ret, what}),
-    do: "MSG " <> sub <> " " <> sid <> " " <> ret <> " " <>
-      to_string(byte_size(what)) <> "\r\n" <> what <> "\r\n"
+    do: encode_body("MSG " <> sub <> " " <> sid <> " " <> ret, what)
   def encode({:pub, sub, nil, what}),
-  do: "PUB " <> sub <> " " <> to_string(byte_size(what)) <>
-    "\r\n" <> what <> "\r\n"
+    do: encode_body("PUB " <> sub, what)
   def encode({:pub, sub, reply, what}),
-    do: "PUB " <> sub <> " " <> reply <> " " <>
-      to_string(byte_size(what)) <> "\r\n" <> what <> "\r\n"
+    do: encode_body("PUB " <> sub <> " " <> reply, what)
   def encode({:sub, subject, nil, sid}),
-    do: "SUB " <> subject <> " " <> sid <> "\r\n"
+    do: encode_done("SUB " <> subject <> " " <> sid <> "\r\n")
   def encode({:sub, subject, queue, sid}),
-    do: "SUB " <> subject <> " " <> queue <> " " <> sid <> "\r\n"
-  def encode({:unsub, sid, nil}), do: "UNSUB " <> sid <> "\r\n"
+    do: encode_done("SUB " <> subject <> " " <> queue <> " " <> sid <> "\r\n")
+  def encode({:unsub, sid, nil}),
+    do: encode_done("UNSUB " <> sid <> "\r\n")
   def encode({:unsub, sid, afterReceiving}),
-    do: "UNSUB " <> sid <> " " <> to_string(afterReceiving) <> "\r\n"
+    do: encode_done("UNSUB " <> sid <> " " <>
+                     to_string(afterReceiving) <> "\r\n")
 end

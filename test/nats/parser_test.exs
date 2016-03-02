@@ -4,7 +4,7 @@ defmodule Nats.ParserTest do
   use ExUnit.Case, async: true
   import TestHelper
 
-  defp encode(x),             do: Nats.Parser.encode(x)
+  defp encode(x),             do: Nats.Parser.flat_encode(x)
   defp parse(binary),         do: Nats.Parser.parse(binary)
   defp parse(state, binary),  do: Nats.Parser.parse(state, binary)
 

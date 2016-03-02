@@ -19,5 +19,5 @@ msg = "hello NATS world"
 IO.puts "starting NATS..."
 {:ok, pid} = Client.start_link
 Pub.pub(pid, subject, msg, 10)
-GenServer.stop(pid)
+Client.stop(pid)
 IO.puts "exiting..."

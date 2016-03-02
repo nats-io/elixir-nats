@@ -3,7 +3,7 @@ defmodule Nats.ConnectionTest do
   use ExUnit.Case, async: false
   alias Nats.Connection
 
-  @tag disabled: true
+  @tag requires_gnatsd: true
   test "Open a default connection" do
     :erlang.process_flag(:trap_exit, true)
     opts = %{ tls_required: false,
@@ -14,7 +14,7 @@ defmodule Nats.ConnectionTest do
               socket_opts: [:binary, active: :once],
               ssl_opts: []}
     {:ok, con } = Connection.start_link(self(), opts)
-    GenServer.stop(con)
+    assert :ok == Connection.stop(con)
     # reopen...
     {:ok, _con } = Connection.start_link(self(), opts)
   end
