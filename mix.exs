@@ -8,13 +8,13 @@ defmodule Nats.Mixfile do
   @home_url @git_url
   @doc_url "https://nats-io.github.com/elixir-nats/"
   @description "NATS framework for Elixir"
-  
+
   @version "0.1.5"
 
   def project do
     [app: :nats,
      version: @version,
-     elixir: "~> 1.2.2",
+     elixir: ">= 1.2.0",
      description: @description,
      package: package,
      source_url: @git_url,
@@ -33,10 +33,10 @@ defmodule Nats.Mixfile do
   end
 
   defp deps do
-    [{:exrm, "~> 0.18.8", only: :dev},
-     {:excoveralls, "~> 0.4.5", only: :test},
-     {:earmark, "~> 0.2.1", only: :dev},
-     {:ex_doc, "~> 0.11.4", only: :dev}]
+    [{:exrm, "~> 1.0", only: :dev},
+     {:excoveralls, "~> 0.5", only: :test},
+     {:earmark, "~> 1.0", only: :dev},
+     {:ex_doc, "~> 0.12", only: :dev}]
   end
 
   defp package do
