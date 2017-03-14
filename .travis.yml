@@ -10,12 +10,16 @@ language: elixir
 otp_release:
   - 18.0
   - 19.1
+  - 19.2
 elixir:
   - 1.2.2
   - 1.3.4
+  - 1.4.2
 matrix:
   exclude:
     - otp_release: 19.1
+      elixir: 1.2.2
+    - otp_release: 19.2
       elixir: 1.2.2
 sudo: false
 script:
