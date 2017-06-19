@@ -21,6 +21,12 @@ end
 
 ## To build and/or test from sources
 
+Run the test servers:
+
+```sh
+./test/run-test-servers.sh
+```
+
 Clone, fork or pull this repository. And then:
 
 ```sh
