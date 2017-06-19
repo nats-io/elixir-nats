@@ -47,6 +47,19 @@ defmodule Nats.ClientTest do
   end
 
   @tag capture_log: true
+  test "Open a named client" do
+    subject = "FOO-bar"
+
+    {:ok, _ } = Client.start_link :test_client
+    {:ok, ref1} = Client.sub(:test_client, self(), subject)
+    :ok == Client.unsub(:test_client, ref1)
+
+    {:ok, _ } = Client.start :test_client2
+    {:ok, ref2} = Client.sub(:test_client2, self(), subject)
+    :ok == Client.unsub(:test_client2, ref2)
+  end
+
+  @tag capture_log: true
   test "Client wants tls vs. server doesn't" do
     opts = %{ tls_required: true, port: TestHelper.default_port, }
     {:error, _why } = Client.start opts

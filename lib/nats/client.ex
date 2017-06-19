@@ -22,11 +22,26 @@ defmodule Nats.Client do
                   opts: @default_opts,
                   next_sid: 0}
 
-  def start_link(opts \\ %{}) do
+  def start_link(opts \\ %{})
+  def start_link(opts) when is_map(opts) do
     GenServer.start_link(__MODULE__, Map.merge(@default_opts, opts))
   end
-  def start(opts \\ %{}) do
+  def start_link(name) do
+    start_link(name, %{})
+  end
+  def start_link(name, opts) do
+    GenServer.start_link(__MODULE__, Map.merge(@default_opts, opts), name: name)
+  end
+
+  def start(opts \\ %{})
+  def start(opts) when is_map(opts) do
     GenServer.start(__MODULE__, Map.merge(@default_opts, opts))
+  end
+  def start(name) do
+    start(name, %{})
+  end
+  def start(name, opts) when is_map(opts) do
+    GenServer.start(__MODULE__, Map.merge(@default_opts, opts), name: name)
   end
 
   def init(orig_opts) do
