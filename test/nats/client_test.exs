@@ -3,14 +3,14 @@ defmodule Nats.ClientTest do
   use ExUnit.Case, async: false
   alias Nats.Client
 
-  @tag requires_gnatsd: true
+  @tag requires_gnatsd: true, capture_log: true
   test "Open a default client" do
     subject = "FOO-bar"
 
     {:error, _rest} = Client.start(%{host: ""})
 
     {:error, _rest} = Client.start(%{timeout: 0})
-    
+
     {:ok, con } = Client.start_link
     {:ok, ref1} = Client.sub(con, self(), subject)
 
@@ -28,7 +28,7 @@ defmodule Nats.ClientTest do
     :ok = Client.unsub(con, ref1)
     :ok = Client.unsub(con, ref2)
     {:error, _} = Client.unsub(con, ref2)
-    
+
     :ok = Client.pub(con, "subject", "hello world")
     :ok = Client.pub(con, "subject", "return", "hello return world")
 
@@ -46,6 +46,7 @@ defmodule Nats.ClientTest do
     :ok = Client.flush(con)
   end
 
+  @tag capture_log: true
   test "Open a named client" do
     subject = "FOO-bar"
 
@@ -58,19 +59,24 @@ defmodule Nats.ClientTest do
     :ok == Client.unsub(:test_client2, ref2)
   end
 
+  @tag capture_log: true
   test "Client wants tls vs. server doesn't" do
     opts = %{ tls_required: true, port: TestHelper.default_port, }
     {:error, _why } = Client.start opts
     opts = %{ auth_opts: %{}, tls_required: true, port: TestHelper.default_port, }
     {:error, _why } = Client.start opts
   end
-  test "Client doesn't want tls vs. server does" do 
-    # check whether we 
+
+  @tag capture_log: true
+  test "Client doesn't want tls vs. server does" do
+    # check whether we
     opts = %{ tls_required: false, port: TestHelper.tls_port, }
     {:error, _why } = Client.start opts
     opts = %{ auth_opts: %{}, tls_required: false, port: TestHelper.tls_port, }
     {:error, _why } = Client.start opts
   end
+
+  @tag capture_log: true
   test "Client and server both want tls" do
     opts = %{ tls_required: true, port: TestHelper.tls_port, }
     {:ok, conn} = Client.start opts
@@ -78,6 +84,8 @@ defmodule Nats.ClientTest do
     opts = %{ auth_opts: %{}, tls_required: true, port: TestHelper.tls_port, }
     {:ok, _err} = Client.start opts
   end
+
+  @tag capture_log: true
   test "Client vs. server auth" do
     # see if the server wants auth, it should NOT and we do... so we should fail
     opts = %{ auth: %{ "user" => "user", "pass" => "pass"}, }
@@ -92,7 +100,7 @@ defmodule Nats.ClientTest do
     # back...
     opts = %{ port: TestHelper.auth_port}
     {:error, _why} = Client.start opts
-    
+
     # We should fail if we pass invalid credentials, make sure...
     opts = %{ port: TestHelper.auth_port,
               auth: %{ "user" => "oops", "pass" => "oops22"}}
