@@ -42,7 +42,7 @@ defmodule Nats.Mixfile do
   defp package do
     [
       name: "natsio",
-      files: ~w(lib src bench mix.exs LICENSE README.md),
+      files: ~w(lib src mix.exs LICENSE README.md),
       maintainers: ["camros", "nats.io", "Apcera"],
       licenses: ["MIT"],
       links: %{"GitHub" => @git_url,

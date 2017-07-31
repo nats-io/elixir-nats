@@ -75,6 +75,24 @@ $ open docs/index.html
 $ cat examples/*.exs
 ```
 
+## Release Library
+
+Bump version in `mix.exs`:
+
+```elixir
+  ...
+
+  @version "0.1.5"
+
+  ...
+``` 
+
+As an administrator in the natsio [hex package](https://hex.pm/packages/natsio):
+
+```sh
+mix hex.publish
+```
+
 ## License
 
 [License](LICENSE)
