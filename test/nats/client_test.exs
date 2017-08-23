@@ -52,11 +52,11 @@ defmodule Nats.ClientTest do
 
     {:ok, _ } = Client.start_link :test_client
     {:ok, ref1} = Client.sub(:test_client, self(), subject)
-    :ok == Client.unsub(:test_client, ref1)
+    :ok = Client.unsub(:test_client, ref1)
 
     {:ok, _ } = Client.start :test_client2
     {:ok, ref2} = Client.sub(:test_client2, self(), subject)
-    :ok == Client.unsub(:test_client2, ref2)
+    :ok = Client.unsub(:test_client2, ref2)
   end
 
   @tag capture_log: true
