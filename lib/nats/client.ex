@@ -94,19 +94,17 @@ defmodule Nats.Client do
     case Map.get(subs_by_sid, sid, nil) do
       ^who ->
         other_subs_for_pid = Map.delete(Map.get(subs_by_pid, who), sid)
-#        IO.puts "other_subs_for_pid(#{Map.size(other_subs_for_pid)}->#{inspect other_subs_for_pid}"
-        if Map.size(other_subs_for_pid) > 0 do
-          subs_by_pid = Map.put(subs_by_pid, who, other_subs_for_pid)
-        else
-#          IO.puts "deleting..."
-          # don't carry around empty maps in our state for this pid
-          subs_by_pid = Map.delete(subs_by_pid, who)
+
+        new_subs_by_pid = case Map.size(other_subs_for_pid) > 0 do
+          true -> Map.put(subs_by_pid, who, other_subs_for_pid)
+          _else -> Map.delete(subs_by_pid, who)
         end
-        state = %{state |
-                  subs_by_sid: Map.delete(subs_by_sid, sid),
-                  subs_by_pid: subs_by_pid}        
-        send_cmd(state, {:unsub, sid, afterReceiving})
-        {:reply, :ok, state}
+
+        new_state = %{state |
+                      subs_by_sid: Map.delete(subs_by_sid, sid),
+                      subs_by_pid: new_subs_by_pid}
+        send_cmd(new_state, {:unsub, sid, afterReceiving})
+        {:reply, :ok, new_state}
       nil ->
         {:reply, {:error, {"not subscribed", ref}}, state}
       _ ->

@@ -10,8 +10,8 @@ defmodule Nats.Parser do
     {func, rest, state}
   defp cont(func, state, how_many \\ @min_lookahead, rest \\ <<>>), do:
     {:cont, how_many, init_state(rest, func, state)}
-  def parse(string), do: parse(init_state, string)
-  def parse(nil, string), do: parse(init_state, string)
+  def parse(string), do: parse(init_state(), string)
+  def parse(nil, string), do: parse(init_state(), string)
   def parse({ func, <<>>, state}, string), do: func.(string, state)
   def parse({ func, buff, state}, string), do: func.(buff <> string,
                                                      state)
@@ -111,7 +111,6 @@ defmodule Nats.Parser do
     end
   end
 
-
   defp parse_res(rest, verb), do: simp_done(rest, verb)
 
   defp done1(rest, w = {:err, _}), do: parse_res(rest, w)
@@ -142,19 +141,13 @@ defmodule Nats.Parser do
   defp done1(buff, verb = {:msg, _sub, _sid, _ret, size})
     when is_integer(size), 
     do: body(buff, byte_size(buff), size, verb, <<>>)
-  defp done1(_, verb) do
-    why = ""
-    # total hack to fix up things so there is ONE error that makes sense
-    v = elem(verb, 0)
-    if v == :msg || v == :pub do
-      case elem(verb, tuple_size(verb) - 1) do
-        {:error, reason} -> why = ": #{reason}"
-        size -> size
-      end
-    end
-#    IO.puts("done1 catchall: #{inspect verb}: #{why}")
-    parse_err("invalid arguments to #{elem(verb,0)}#{why}")
-  end
+  defp done1(_, {:msg, _, _, _, {:error, reason}}),
+    do: parse_err("invalid arguments to #{:msg}#{reason}")
+  defp done1(_, {:pub, _, _, {:error, reason}}),
+    do: parse_err("invalid arguments to #{:pub}#{reason}")
+  defp done1(_, verb),
+    do: parse_err("invalid arguments to #{elem(verb,0)}")
+
   defp parse_int("0"), do: 0
   defp parse_int(what), do: parse_int1(what, Integer.parse(what, 10))
   defp parse_int1(_orig, {result, <<>>}) when result >= 0, do: result
