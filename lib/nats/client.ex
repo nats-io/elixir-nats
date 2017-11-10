@@ -4,7 +4,7 @@ defmodule Nats.Client do
   require Logger
 
   alias Nats.Connection
-  
+
   @default_host "127.0.0.1"
   @default_port 4222
   @default_timeout 5000
@@ -136,7 +136,7 @@ defmodule Nats.Client do
     send_cmd(state, encoded, flush?, from)
     {:noreply, state}
   end
- 
+
   def pub(self, subject, what) do pub(self, subject, nil, what) end
   def pub(self, subject, reply, what),
     do: GenServer.call(self, {:cmd,
