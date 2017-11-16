@@ -169,6 +169,7 @@ defmodule Nats.Parser do
       Enum.join(Enum.map(array, fn(x) -> to_json(x) end), ", ") <>
     <<?\]>>
   end
+  defp member_pair(k,v) when is_atom(k), do: member_pair(Atom.to_string(k),v)
   defp member_pair(k,v) when is_binary(k) do
     to_json(k) <> <<": ">> <> to_json(v)
   end
