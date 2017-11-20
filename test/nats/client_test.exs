@@ -88,12 +88,12 @@ defmodule Nats.ClientTest do
   @tag capture_log: true
   test "Client vs. server auth" do
     # see if the server wants auth, it should NOT and we do... so we should fail
-    opts = %{ auth: %{ "user" => "user", "pass" => "pass"}, }
+    opts = %{ auth: %{ user: "user", pass: "pass"}, }
     {:error, _why } = Client.start opts
     # connect to the other server, we want auth and they have it so this
     # should succeed
     opts = %{ port: TestHelper.auth_port,
-              auth: %{ "user" => "user", "pass" => "pass"}}
+              auth: %{ user: "user", pass: "pass"}}
     {:ok, conn } = Client.start opts
     Client.stop(conn)
     # reverse of the above, connect with no auth and see if we get an error
@@ -103,7 +103,7 @@ defmodule Nats.ClientTest do
 
     # We should fail if we pass invalid credentials, make sure...
     opts = %{ port: TestHelper.auth_port,
-              auth: %{ "user" => "oops", "pass" => "oops22"}}
+              auth: %{ user: "oops", pass: "oops22"}}
     {:error, _what} = Client.start opts
   end
 end
