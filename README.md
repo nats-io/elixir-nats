@@ -14,7 +14,7 @@ defp deps do
     # for github
     [{:nats, git: "https://github.com/nats-io/elixir-nats.git"}]
     # for hex (forthcoming)
-    [{:natsio, "~> 0.1.5"}]
+    [{:natsio, "~> 0.1.6"}]
 end
 ```
 
@@ -88,7 +88,7 @@ Bump version in `mix.exs`:
 ```elixir
   ...
 
-  @version "0.1.5"
+  @version "0.1.6"
 
   ...
 ``` 
