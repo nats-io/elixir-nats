@@ -9,7 +9,7 @@ defmodule Nats.Mixfile do
   @doc_url "https://nats-io.github.com/elixir-nats/"
   @description "NATS framework for Elixir"
 
-  @version "0.1.5"
+  @version "0.1.6"
 
   def project do
     [app: :nats,
@@ -43,7 +43,7 @@ defmodule Nats.Mixfile do
     [
       name: "natsio",
       files: ~w(lib src mix.exs LICENSE README.md),
-      maintainers: ["camros", "nats.io", "Apcera"],
+      maintainers: ["nats.io"],
       licenses: ["MIT"],
       links: %{"GitHub" => @git_url,
                "Docs" => @doc_url,
