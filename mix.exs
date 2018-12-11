@@ -12,20 +12,20 @@ defmodule Nats.Mixfile do
   @version "0.1.6"
 
   def project do
-    [app: :nats,
-     version: @version,
-     elixir: ">= 1.2.0",
-     description: @description,
-     package: package(),
-     source_url: @git_url,
-     homepage_url: @home_url,
-     deps: deps(),
-     name: @name,
-     docs: [extra_section: "TOC", main: "readme",
-            extras: ["README.md", "EXAMPLES.md"]],
-     test_coverage: [tool: ExCoveralls],
-     preferred_cli_env: ["coveralls": :test, "coveralls.detail":
-                         :test, "coveralls.post": :test]]
+    [
+      app: :nats,
+      version: @version,
+      elixir: ">= 1.2.0",
+      description: @description,
+      package: package(),
+      source_url: @git_url,
+      homepage_url: @home_url,
+      deps: deps(),
+      name: @name,
+      docs: [extra_section: "TOC", main: "readme", extras: ["README.md", "EXAMPLES.md"]],
+      test_coverage: [tool: ExCoveralls],
+      preferred_cli_env: [coveralls: :test, "coveralls.detail": :test, "coveralls.post": :test]
+    ]
   end
 
   def application do
@@ -33,10 +33,12 @@ defmodule Nats.Mixfile do
   end
 
   defp deps do
-    [{:exrm, "~> 1.0", only: :dev},
-     {:excoveralls, "~> 0.5", only: :test},
-     {:earmark, "~> 1.2.3", only: :dev},
-     {:ex_doc, "~> 0.12", only: :dev}]
+    [
+      {:exrm, "~> 1.0", only: :dev},
+      {:excoveralls, "~> 0.5", only: :test},
+      {:earmark, "~> 1.2.3", only: :dev},
+      {:ex_doc, "~> 0.12", only: :dev}
+    ]
   end
 
   defp package do
@@ -45,9 +47,7 @@ defmodule Nats.Mixfile do
       files: ~w(lib src mix.exs LICENSE README.md),
       maintainers: ["nats.io"],
       licenses: ["MIT"],
-      links: %{"GitHub" => @git_url,
-               "Docs" => @doc_url,
-               "Nats.io" => @nats_io_url}
+      links: %{"GitHub" => @git_url, "Docs" => @doc_url, "Nats.io" => @nats_io_url}
     ]
   end
 end
