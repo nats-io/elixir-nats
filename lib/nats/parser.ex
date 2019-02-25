@@ -114,27 +114,15 @@ defmodule Nats.Parser do
     do: cont(&done/2, argv, 2 - byte_size(buff), buff)
 
   defp parse_json(rest, verb, json_str) do
-    case :json_lexer.string(to_charlist(json_str)) do
-      {:ok, tokens, _} ->
-        pres = :json_parser.parse(tokens)
+    case Jason.decode(json_str) do
+      {:ok, json} when is_map(json) ->
+        simp_done(rest, {verb, json})
 
-        case pres do
-          {:ok, json} when is_map(json) ->
-            simp_done(rest, {verb, json})
+      {:ok, json} ->
+        parse_err("not a json object in #{verb}: #{inspect(json)}")
 
-          {:ok, _} ->
-            parse_err("not a json object in #{verb}: #inspect json_str}")
-
-          {:error, {_, what, mesg}} ->
-            parse_err("invalid json in #{verb} #{what}: #{mesg}: #{inspect(json_str)}")
-        end
-
-      other ->
-        parse_err(
-          "unexpected json lexer result for json in #{verb}: #{inspect(other)}: #{
-            inspect(json_str)
-          }"
-        )
+      {:error, error} ->
+        parse_err("unexpexted json in #{verb}: #{inspect(error)}: #{inspect(json_str)}")
     end
   end
 

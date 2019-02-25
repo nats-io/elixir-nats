@@ -430,7 +430,7 @@ defmodule Nats.Connection do
             {:noreply, state}
 
           {:error, why, state} ->
-            nats_err(state, "ssl handshake failed: #{why}")
+            nats_err(state, "ssl handshake failed: #{inspect(why)}")
         end
 
       {:error, why} ->

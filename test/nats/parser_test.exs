@@ -4,9 +4,9 @@ defmodule Nats.ParserTest do
   use ExUnit.Case, async: true
   import TestHelper
 
-  defp encode(x),             do: Nats.Parser.flat_encode(x)
-  defp parse(binary),         do: Nats.Parser.parse(binary)
-  defp parse(state, binary),  do: Nats.Parser.parse(state, binary)
+  defp encode(x), do: Nats.Parser.flat_encode(x)
+  defp parse(binary), do: Nats.Parser.parse(binary)
+  defp parse(state, binary), do: Nats.Parser.parse(state, binary)
 
   test "PING/PONG/OK/ERR parsing" do
     assert_verb_parse_encode("PING\r\n", {:ping})
@@ -29,46 +29,45 @@ defmodule Nats.ParserTest do
     assert_parse_error("INFO \r\n")
 
     assert_parses(
-      binary:   "INFO {\"key\":true}\r\n",
+      binary: "INFO {\"key\":true}\r\n",
       expected: {:info, %{"key" => true}},
-      encoded:  "INFO {\"key\": true}\r\n",
+      encoded: "INFO {\"key\": true}\r\n"
     )
 
     assert_parses(
-      binary:   "INFO { \"key\":true, \"embed\": {\"a\": [\"b\",\"c\", 123] } }\r\n",
+      binary: "INFO { \"key\":true, \"embed\": {\"a\": [\"b\",\"c\", 123] } }\r\n",
       expected: {:info, %{"embed" => %{"a" => ["b", "c", 123]}, "key" => true}},
-      encoded:  "INFO {\"embed\": {\"a\": [\"b\", \"c\", 123]}, \"key\": true}\r\n",
+      encoded: "INFO {\"embed\": {\"a\": [\"b\", \"c\", 123]}, \"key\": true}\r\n"
     )
 
     assert_parses(
-      binary:   "INFO {}\r\n",
+      binary: "INFO {}\r\n",
       expected: {:info, %{}},
-      encoded:  "INFO {}\r\n",
+      encoded: "INFO {}\r\n"
     )
 
     assert_parses(
-      binary:   "INFO { \"key\":true}\r\n",
+      binary: "INFO { \"key\":true}\r\n",
       expected: {:info, %{"key" => true}},
-      encoded:  "INFO {\"key\": true}\r\n",
+      encoded: "INFO {\"key\": true}\r\n"
     )
 
     assert_parses(
-      binary:   "INFO { \"k1\":true, \"k2\": false}\r\n",
+      binary: "INFO { \"k1\":true, \"k2\": false}\r\n",
       expected: {:info, %{"k1" => true, "k2" => false}},
-      encoded:  "INFO {\"k1\": true, \"k2\": false}\r\n",
+      encoded: "INFO {\"k1\": true, \"k2\": false}\r\n"
     )
 
     assert_parses(
-      binary:   "CONNECT {\"key\":true}\r\n",
+      binary: "CONNECT {\"key\":true}\r\n",
       expected: {:connect, %{"key" => true}},
-      encoded:  "CONNECT {\"key\": true}\r\n",
+      encoded: "CONNECT {\"key\": true}\r\n"
     )
 
     assert_parse_error("INFO []\r\n")
     assert_parse_error("INFO [\r\n")
     assert_parse_error("INFO @\r\n")
     assert_parse_error("INFO [false, true,false,]\r\n")
-
 
     {:cont, _howmany, state} = parse("CON")
     {:ok, {:connect, %{}}, "", _} = parse(state, "NECT {}\r\n")
@@ -78,41 +77,42 @@ defmodule Nats.ParserTest do
 
     assert_parse_error("PUB S S 1\r\n1\rZ+OK\r\n")
 
-
     assert_parses(
-      binary:   "INFO {\"a\":{\"b\":{\"c\":\"zebra\"}}}\r\n",
+      binary: "INFO {\"a\":{\"b\":{\"c\":\"zebra\"}}}\r\n",
       expected: {:info, %{"a" => %{"b" => %{"c" => "zebra"}}}},
-      encoded:  "INFO {\"a\": {\"b\": {\"c\": \"zebra\"}}}\r\n",
+      encoded: "INFO {\"a\": {\"b\": {\"c\": \"zebra\"}}}\r\n"
     )
 
     assert_parses(
-      binary:   "INFO {\"a\": [true,false,null,\"abc\",[1],2.2,[]]}\r\n",
+      binary: "INFO {\"a\": [true,false,null,\"abc\",[1],2.2,[]]}\r\n",
       expected: {:info, %{"a" => [true, false, nil, "abc", [1], 2.2, []]}},
-      encoded:  "INFO {\"a\": [true, false, null, \"abc\", [1], 2.2, []]}\r\n",
+      encoded: "INFO {\"a\": [true, false, null, \"abc\", [1], 2.2, []]}\r\n"
     )
 
     assert_parses(
-      binary:   "INFO {\"a\":{\"b\":{\"c\":\"zebra\"}}}\r\n",
+      binary: "INFO {\"a\":{\"b\":{\"c\":\"zebra\"}}}\r\n",
       expected: {:info, %{"a" => %{"b" => %{"c" => "zebra"}}}},
-      encoded:  "INFO {\"a\": {\"b\": {\"c\": \"zebra\"}}}\r\n",
+      encoded: "INFO {\"a\": {\"b\": {\"c\": \"zebra\"}}}\r\n"
     )
 
     assert_parses(
-      binary:   "CONNECT {\"a\":{\"b\":{\"c\":\"zebra\"}}}\r\n",
+      binary: "CONNECT {\"a\":{\"b\":{\"c\":\"zebra\"}}}\r\n",
       expected: {:connect, %{"a" => %{"b" => %{"c" => "zebra"}}}},
-      encoded:  "CONNECT {\"a\": {\"b\": {\"c\": \"zebra\"}}}\r\n",
+      encoded: "CONNECT {\"a\": {\"b\": {\"c\": \"zebra\"}}}\r\n"
     )
   end
 
   test "UNSUB parsing" do
     assert_parses(
-      binary:   "UNSUB sid\r\n",
-      expected: {:unsub, "sid", nil},
+      binary: "UNSUB sid\r\n",
+      expected: {:unsub, "sid", nil}
     )
+
     assert_parses(
-      binary:   "UNSUB sid 10\r\n",
-      expected: {:unsub, "sid", 10},
+      binary: "UNSUB sid 10\r\n",
+      expected: {:unsub, "sid", 10}
     )
+
     assert_parse_error("UNSUB sid bad\r\n")
   end
 
@@ -120,54 +120,60 @@ defmodule Nats.ParserTest do
     assert_parse_error("SUB bad\r\n")
 
     assert_parses(
-      binary:   "SUB subj sid\r\n",
-      expected: {:sub, "subj", nil, "sid"},
+      binary: "SUB subj sid\r\n",
+      expected: {:sub, "subj", nil, "sid"}
     )
 
     assert_parses(
-      binary:   "SUB subj q sid\r\n",
-      expected: {:sub, "subj", "q", "sid"},
+      binary: "SUB subj q sid\r\n",
+      expected: {:sub, "subj", "q", "sid"}
     )
 
     assert_parses(
-      binary:   "SUB S s\r\n",
-      expected: {:sub, "S", nil, "s"},
+      binary: "SUB S s\r\n",
+      expected: {:sub, "S", nil, "s"}
     )
 
     assert_parses(
-      binary:   "SUB S Q s\r\n",
-      expected: {:sub, "S", "Q", "s"},
+      binary: "SUB S Q s\r\n",
+      expected: {:sub, "S", "Q", "s"}
     )
   end
 
   test "PUB parsing" do
     assert_parses(
-      binary:   "PUB subj 0\r\n\r\n",
-      expected: {:pub, "subj", nil, ""},
+      binary: "PUB subj 0\r\n\r\n",
+      expected: {:pub, "subj", nil, ""}
     )
+
     assert_parses(
-      binary:   "PUB subj 4\r\n1234\r\n",
-      expected: {:pub, "subj", nil, "1234"},
+      binary: "PUB subj 4\r\n1234\r\n",
+      expected: {:pub, "subj", nil, "1234"}
     )
+
     assert_parses(
-      binary:   "PUB subj ret 4\r\nnats\r\n",
-      expected: {:pub, "subj", "ret", "nats"},
+      binary: "PUB subj ret 4\r\nnats\r\n",
+      expected: {:pub, "subj", "ret", "nats"}
     )
+
     assert_parses(
-      binary:   "PUB subj ret 2\r\nio\r\n",
-      expected: {:pub, "subj", "ret", "io"},
+      binary: "PUB subj ret 2\r\nio\r\n",
+      expected: {:pub, "subj", "ret", "io"}
     )
+
     assert_parses(
-      binary:   "PUB subj ret 5\r\nnats!\r\n",
-      expected: {:pub, "subj", "ret", "nats!"},
+      binary: "PUB subj ret 5\r\nnats!\r\n",
+      expected: {:pub, "subj", "ret", "nats!"}
     )
+
     assert_parses(
-      binary:   "PUB subj ret 5\r\nnats!\r\n",
-      expected: {:pub, "subj", "ret", "nats!"},
+      binary: "PUB subj ret 5\r\nnats!\r\n",
+      expected: {:pub, "subj", "ret", "nats!"}
     )
+
     assert_parses(
-      binary:   "PUB subj ret 10\r\nhello nats\r\n",
-      expected: {:pub, "subj", "ret", "hello nats"},
+      binary: "PUB subj ret 10\r\nhello nats\r\n",
+      expected: {:pub, "subj", "ret", "hello nats"}
     )
 
     assert_parse_error("PUB subj ret -1\r\n")
@@ -177,7 +183,7 @@ defmodule Nats.ParserTest do
     assert_parse_error("PUB \r\n")
 
     assert {:cont, 2, _} = parse("PUB sub ret 0\r\n")
-    assert {:cont, 2, _}   = parse("PUB sub 0\r\n")
+    assert {:cont, 2, _} = parse("PUB sub 0\r\n")
     assert {:cont, 6, _} = parse("PUB sub ret 4\r\n")
     assert {:cont, 2, _} = parse("PUB sub ret 4\r\nhell")
 
@@ -185,23 +191,25 @@ defmodule Nats.ParserTest do
     assert_parse_error("PUB \r\n")
 
     assert_parses(
-      binary:   "PUB S 0\r\n\r\n",
-      expected: {:pub, "S", nil, ""},
+      binary: "PUB S 0\r\n\r\n",
+      expected: {:pub, "S", nil, ""}
     )
+
     assert_parses(
-      binary:   "PUB S R 0\r\n\r\n",
-      expected: {:pub, "S", "R", ""},
+      binary: "PUB S R 0\r\n\r\n",
+      expected: {:pub, "S", "R", ""}
     )
   end
 
   test "MSG parsing" do
     assert_parses(
-      binary:   "MSG subj sid 0\r\n\r\n",
-      expected: {:msg, "subj", "sid", nil, ""},
+      binary: "MSG subj sid 0\r\n\r\n",
+      expected: {:msg, "subj", "sid", nil, ""}
     )
+
     assert_parses(
-      binary:   "MSG subj sid ret 4\r\nnats\r\n",
-      expected: {:msg, "subj", "sid", "ret", "nats"},
+      binary: "MSG subj sid ret 4\r\nnats\r\n",
+      expected: {:msg, "subj", "sid", "ret", "nats"}
     )
 
     assert_parse_error("MSG subj sid ret bad\r\n")
@@ -211,12 +219,13 @@ defmodule Nats.ParserTest do
     assert_parse_error("MSG \r\n")
 
     assert_parses(
-      binary:   "MSG S s 0\r\n\r\n",
-      expected: {:msg, "S", "s", nil, ""},
+      binary: "MSG S s 0\r\n\r\n",
+      expected: {:msg, "S", "s", nil, ""}
     )
+
     assert_parses(
-      binary:   "MSG S s R 0\r\n\r\n",
-      expected: {:msg, "S", "s", "R", ""},
+      binary: "MSG S s R 0\r\n\r\n",
+      expected: {:msg, "S", "s", "R", ""}
     )
 
     assert {:cont, 2, _} = parse("MSG sub ret 0\r\n")
@@ -224,7 +233,6 @@ defmodule Nats.ParserTest do
     assert_parse_error("MSG sub 0\r\n")
     assert_parse_error("MSG 0\r\n")
     assert_parse_error("MSG \r\n")
-
   end
 
   test "continuation testing to address GH-18" do
@@ -316,4 +324,3 @@ defmodule Nats.ParserTest do
     assert_parse_error("SUB SUB SID\r@")
   end
 end
-
