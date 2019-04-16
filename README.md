@@ -1,6 +1,12 @@
-# An Elixir framework for [NATS](https://nats.io/)
+# (Deprecated) An Elixir framework for [NATS](https://nats.io/)
 [![Build Status](https://travis-ci.org/nats-io/elixir-nats.svg?branch=master)](https://travis-ci.org/nats-io/elixir-nats)
 [![Coverage Status](https://coveralls.io/repos/github/nats-io/elixir-nats/badge.svg?branch=master)](https://coveralls.io/github/nats-io/elixir-nats?branch=master)
+
+# Deprecated
+
+:no_entry_sign: **Do not use this client.** It has been deprecated.  Use the [nats.ex](https://github.com/nats-io/nats.ex) elixir client instead.
+
+# Original Content
 
 _Elixir style_ documentation is located [here](https://nats-io.github.io/elixir-nats/)
 
